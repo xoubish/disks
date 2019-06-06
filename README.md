@@ -13,4 +13,14 @@ In this directory there is also a notebook example of fitting 3D disk data to fi
 
 ### Fist things first
 
-Ok before getting excited about realistic disk images, I should learn GANs, and which versions to use. I start GAN with MNIST examples from web. I will add the learning notebooks in this directory as well. Starting with a simple GAN implementation in the tensorflow (no keras). found in "MNIST_tf.ipynb"
+Ok before getting excited about realistic disk images, I should learn GANs, and which versions to use. I start GAN with MNIST examples from web. I will add the learning notebooks in this directory as well. Starting with a simple GAN implementation in the tensorflow.
+
+I converted my galaxy cutout images in F160W band to MNIST data format, so I can more easily play with GAN codes and test them. 
+Issue 1: These take long times on a normal CPU. Will use CUDA and numba?! with my GPU instead.
+Issue 2: OS Mojave does not support NVidia GPUs! (Learned this June 3rd)
+
+so best option might be using AWS sagemaker. To use tensorflow on AWS, there are some predefined packages and tensorflow can be imported through sagemaker directly. However the best option seems to be building my code in a docker container and deploying it into sagemaker afterwards. 
+
+So here I am learning about containers now (June 5th)! 
+
+
