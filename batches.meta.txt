@@ -1,4 +1,0 @@
-bband
-vband
-iband
-zband
