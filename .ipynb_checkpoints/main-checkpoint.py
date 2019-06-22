@@ -12,6 +12,19 @@ import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
 
+import torch.nn.functional as F
+
+import astropy.io.fits as pyfits
+import numpy as np
+
+psf = pyfits.getdata('psf_h.fits')
+psf = np.asarray(psf[62:-62,62:-62],dtype='d')
+psfh = np.repeat(psf[:,:, np.newaxis], 1, axis=2)
+psfh = np.repeat(psfh[:,:,:,np.newaxis],1,axis = 3)
+kernel = torch.Tensor(psfh)
+kernel = kernel.permute(2,3,0,1)
+ker = kernel.cuda()
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', help='cifar10 | lsun | mnist |imagenet | folder | lfw | fake')
@@ -19,7 +32,7 @@ parser.add_argument('--dataroot', default='gals/', help='path to dataset')
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=2)
 parser.add_argument('--batchSize', type=int, default=64, help='input batch size')
 parser.add_argument('--imageSize', type=int, default=64, help='the height / width of the input image to network')
-parser.add_argument('--nz', type=int, default=100, help='size of the latent z vector')
+parser.add_argument('--nz', type=int, default=25, help='size of the latent z vector')
 parser.add_argument('--ngf', type=int, default=64)
 parser.add_argument('--ndf', type=int, default=64)
 parser.add_argument('--niter', type=int, default=2, help='number of epochs to train for')
@@ -189,6 +202,11 @@ for epoch in range(opt.niter):
         # train with fake
         noise = torch.randn(batch_size, nz, 1, 1, device=device)
         fake = netG(noise)
+                
+        ####################PSF convolution added by Shooby##########################    
+        fake = F.conv2d(fake, kernel,padding=int(((kernel.shape[3])-1)/2))
+        #############################################################################
+        
         label.fill_(fake_label)
         output = netD(fake.detach())
         errD_fake = criterion(output, label)
