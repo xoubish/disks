@@ -114,7 +114,7 @@ class Generator(nn.Module):
             nn.ReLU(True),
             # state size. (ngf) x 32 x 32
             nn.ConvTranspose2d(    ngf,      nc, 4, 2, 1, bias=False),
-            #nn.Tanh()
+            nn.Tanh()
             # state size. (nc) x 64 x 64
         )
 
@@ -213,7 +213,7 @@ for epoch in range(opt.niter):
                 
         ####################PSF convolution added by Shooby##########################    
         fake = F.conv2d(fake, kernel,padding=int(((kernel.shape[3])-1)/2))
-        fake = fake.tanh()
+        fake = F.sigmoid(fake)
 
         #############################################################################
         
