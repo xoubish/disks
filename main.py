@@ -212,8 +212,8 @@ for epoch in range(opt.niter):
         fake = netG(noise)
                 
         ####################PSF convolution added by Shooby##########################    
-	fake = F.conv2d(fake, kernel,padding=int(((kernel.shape[3])-1)/2))
-	fake = F.tanh(fake)
+        fake = F.conv2d(fake, kernel,padding=int(((kernel.shape[3])-1)/2))
+        fake = fake.tanh()
 
         #############################################################################
         
