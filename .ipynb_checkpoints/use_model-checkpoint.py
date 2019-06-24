@@ -64,15 +64,7 @@ cudnn.benchmark = True
 if torch.cuda.is_available() and not opt.cuda:
     print("WARNING: You have a CUDA device, so you should probably run with --cuda")
 
-
-    
-dataset = dset.MNIST(root=opt.dataroot, download=True,
-                     transform=transforms.Compose([transforms.Resize(opt.imageSize),transforms.ToTensor(),transforms.Normalize((0.5,), (0.5,)),]))
-nc=1
-
-assert dataset
-dataloader = torch.utils.data.DataLoader(dataset, batch_size=opt.batchSize,
-                                         shuffle=True, num_workers=int(opt.workers))
+nc = 1
 
 device = torch.device("cuda:0" if opt.cuda else "cpu")
 ngpu = int(opt.ngpu)
@@ -91,9 +83,9 @@ def weights_init(m):
         m.bias.data.fill_(0)
 
 
-class Generator(nn.Module):
+class Generator2(nn.Module):
     def __init__(self, ngpu):
-        super(Generator, self).__init__()
+        super(Generator2, self).__init__()
         self.ngpu = ngpu
         self.main = nn.Sequential(
             # input is Z, going into a convolution
@@ -114,7 +106,7 @@ class Generator(nn.Module):
             nn.ReLU(True),
             # state size. (ngf) x 32 x 32
             nn.ConvTranspose2d(    ngf,      nc, 4, 2, 1, bias=False),
-            nn.Tanh()
+            #nn.Tanh()
             # state size. (nc) x 64 x 64
         )
 
@@ -133,49 +125,15 @@ class Generator(nn.Module):
 
         return output
 
-netG = Generator(ngpu).to(device)
-
-
-class Discriminator(nn.Module):
-    def __init__(self, ngpu):
-        super(Discriminator, self).__init__()
-        self.ngpu = ngpu
-        self.main = nn.Sequential(
-            # input is (nc) x 64 x 64
-            nn.Conv2d(nc, ndf, 4, 2, 1, bias=False),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf) x 32 x 32
-            nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ndf * 2),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf*2) x 16 x 16
-            nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ndf * 4),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf*4) x 8 x 8
-            nn.Conv2d(ndf * 4, ndf * 8, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ndf * 8),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf*8) x 4 x 4
-            nn.Conv2d(ndf * 8, 1, 4, 1, 0, bias=False),
-            nn.Sigmoid()
-        )
-
-    def forward(self, input):
-        if input.is_cuda and self.ngpu > 1:
-            output = nn.parallel.data_parallel(self.main, input, range(self.ngpu))
-        else:
-            output = self.main(input)
-
-        return output.view(-1, 1).squeeze(1)
-
-
-netD = Discriminator(ngpu).to(device)
-
-criterion = nn.BCELoss()
+netG2 = Generator2(ngpu).to(device)
 
 fixed_noise = torch.randn(opt.batchSize, nz, 1, 1, device=device)
 
-netG.load_state_dict(torch.load('outputs/netG_epoch_99.pth'))
-fake = netG(fixed_noise)
-vutils.save_image(fake.detach(),'test.png', normalize=True)
+netG2.load_state_dict(torch.load('outputs/netG_epoch_99.pth'))
+fake = netG2(fixed_noise)
+fd = fake.detach()
+print(fd.shape)
+vutils.save_image(fd,'test.png', normalize=True)
+output = F.conv2d(fake, kernel,padding=int(((kernel.shape[3])-1)/2))
+output = output.tanh()
+vutils.save_image(output.detach(),'test2.png', normalize=True)
