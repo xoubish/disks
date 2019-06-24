@@ -121,14 +121,14 @@ class Generator(nn.Module):
     def forward(self, input):
         if input.is_cuda and self.ngpu > 1:
             output = nn.parallel.data_parallel(self.main, input, range(self.ngpu))
-            output = F.conv2d(output, kernel,padding=int(((kernel.shape[3])-1)/2))
-            output = output.tanh()
+            #output = F.conv2d(output, kernel,padding=int(((kernel.shape[3])-1)/2))
+            #output = output.tanh()
 
 
         else:
             output = self.main(input)
-            output = F.conv2d(output, kernel,padding=int(((kernel.shape[3])-1)/2))
-            output = output.tanh()
+            #output = F.conv2d(output, kernel,padding=int(((kernel.shape[3])-1)/2))
+            #output = output.tanh()
 
 
         return output
@@ -212,7 +212,9 @@ for epoch in range(opt.niter):
         fake = netG(noise)
                 
         ####################PSF convolution added by Shooby##########################    
-        #fake = F.conv2d(fake, kernel,padding=int(((kernel.shape[3])-1)/2))
+	fake = F.conv2d(fake, kernel,padding=int(((kernel.shape[3])-1)/2))
+	fake = F.tanh(fake)
+
         #############################################################################
         
         label.fill_(fake_label)
