@@ -32,10 +32,10 @@ parser.add_argument('--dataroot', default='gals/', help='path to dataset')
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=4)
 parser.add_argument('--batchSize', type=int, default=64, help='input batch size')
 parser.add_argument('--imageSize', type=int, default=64, help='the height / width of the input image to network')
-parser.add_argument('--nz', type=int, default=100, help='size of the latent z vector')
+parser.add_argument('--nz', type=int, default=1000, help='size of the latent z vector')
 parser.add_argument('--ngf', type=int, default=64)
 parser.add_argument('--ndf', type=int, default=64)
-parser.add_argument('--niter', type=int, default=100, help='number of epochs to train for')
+parser.add_argument('--niter', type=int, default=200, help='number of epochs to train for')
 parser.add_argument('--lr', type=float, default=0.0002, help='learning rate, default=0.0002')
 parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for adam. default=0.5')
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
@@ -106,33 +106,27 @@ class Generator2(nn.Module):
             nn.ReLU(True),
             # state size. (ngf) x 32 x 32
             nn.ConvTranspose2d(    ngf,      nc, 4, 2, 1, bias=False),
-            #nn.Tanh()
+            nn.Tanh()
             # state size. (nc) x 64 x 64
         )
 
     def forward(self, input):
         if input.is_cuda and self.ngpu > 1:
             output = nn.parallel.data_parallel(self.main, input, range(self.ngpu))
-            #output = F.conv2d(output, kernel,padding=int(((kernel.shape[3])-1)/2))
-            #output = output.tanh()
-
-
         else:
             output = self.main(input)
-            #output = F.conv2d(output, kernel,padding=int(((kernel.shape[3])-1)/2))
-            #output = output.tanh()
-
-
         return output
 
 netG2 = Generator2(ngpu).to(device)
 
 fixed_noise = torch.randn(opt.batchSize, nz, 1, 1, device=device)
 
-netG2.load_state_dict(torch.load('outputs/netG_epoch_99.pth'))
+netG2.load_state_dict(torch.load('outputs/netG_epoch_199.pth'))
 fake = netG2(fixed_noise)
 fd = fake.detach()
-print(fd.shape)
+ajab = fd.cpu()
+ajab = ajab[0,0,:,:].data.numpy()
+pyfits.writeto('test.fits',ajab,clobber=True)
 vutils.save_image(fd,'test.png', normalize=True)
 output = F.conv2d(fake, kernel,padding=int(((kernel.shape[3])-1)/2))
 output = output.tanh()
