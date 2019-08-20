@@ -58,6 +58,8 @@ parser.add_argument('--netG', default='', help="path to netG (to continue traini
 parser.add_argument('--netD', default='', help="path to netD (to continue training)")
 parser.add_argument('--outf', default='.', help='folder to output images and model checkpoints')
 parser.add_argument('--manualSeed', type=int, help='manual seed')
+parser.add_argument('--output', default='GAN_perfomance.png', help='ha')
+
 
 opt = parser.parse_args()
 print(opt)
@@ -140,7 +142,6 @@ dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True, nu
 inputs, classes = next(iter(dataloader))  
 real_cpu = inputs.to(device)
 ajab = real_cpu.detach()
-vutils.save_image(ajab,'original.png', normalize=True)
 
 
 kernel = kernel.to(device)
@@ -148,12 +149,21 @@ im = real_cpu+0.25*torch.rand_like(real_cpu)
 downsampled = F.upsample(im,scale_factor=1/3,mode='bilinear')
 img = F.conv2d(downsampled, kernel,padding=int(((kernel.shape[3])-1)/2))
 img = img[:,:,:,:]
-fd = img.detach()
-vutils.save_image(fd,'downed.png', normalize=True)
 
 ### Use GAN to improve resolution
-netS.load_state_dict(torch.load('netG_epoch_985.pth'))
+netS.load_state_dict(torch.load('netG_epoch_985.pth',map_location='cpu'))
 fake = netS(img)
 fd = fake.detach()
-fd= fd.cpu()
-vutils.save_image(fd,'recovered.png', normalize=True)
+
+import matplotlib.pyplot as plt
+plt.figure(figsize=(12,4))
+plt.subplot(1,3,1)
+plt.imshow(ajab[0,0,:,:],origin='lower')
+plt.text(1,1,'Original',color='y')
+plt.subplot(1,3,2)
+plt.imshow(img[0,0,:,:],origin='lower')
+plt.text(1,1,'downgrade',color='y')
+plt.subplot(1,3,3)
+plt.imshow(fd[0,0,:,:],origin='lower')
+plt.text(1,1,'recovered',color='y')
+plt.savefig(opt.output)
