@@ -19,8 +19,9 @@ I converted my galaxy cutout images in F160W band to MNIST data format, so I can
 Issue 1: These take long times on a normal CPU. Will use CUDA and numba?! with my GPU instead.
 Issue 2: OS Mojave does not support NVidia GPUs! (Learned this June 3rd)
 
-so best option might be using AWS sagemaker. To use tensorflow on AWS, there are some predefined packages and tensorflow can be imported through sagemaker directly. However the best option seems to be building my code in a docker container and deploying it into sagemaker afterwards. 
+The above is too old will fix later!
 
-So here I am learning about containers now (June 5th)! 
+To try using the trained GAN run the line below. It will randomly choose an HST image of a galaxy at z<2 and Hmag<26 and degrade it to HSC resolution, pixelscale and noise level. Then try to recover it with the GAN:
 
+python image_gan_test.py --output boz.png
 
