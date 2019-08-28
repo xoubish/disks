@@ -104,12 +104,12 @@ class Shoobygen(nn.Module):
         super(Shoobygen, self).__init__()
         self.ngpu = ngpu
         self.main = nn.Sequential(
-
+            
             nn.ConvTranspose2d( 1, ngf * 8, 4, 1, 2, bias=False),
             nn.BatchNorm2d(ngf * 8),
             nn.ReLU(True),
             
-            nn.ConvTranspose2d(ngf * 8, ngf * 4, 2, 2, 1, bias=False),
+            nn.ConvTranspose2d(ngf * 8, ngf * 4, 2, 2, 2, bias=False),
             nn.BatchNorm2d(ngf * 4),
             nn.ReLU(True),
   
@@ -120,13 +120,12 @@ class Shoobygen(nn.Module):
     def forward(self, input):
         if input.is_cuda and self.ngpu > 1:
             output = nn.parallel.data_parallel(self.main, input, range(self.ngpu))
-            output1 = output[:,:,2:-2,2:-2]
 
         else:
             output = self.main(input)
-            output1 = output[:,:,2:-2,2:-2]
 
-        return output1
+        return output
+
 
 netS = Shoobygen(ngpu).to(device)
 
@@ -151,7 +150,7 @@ img = F.conv2d(downsampled, kernel,padding=int(((kernel.shape[3])-1)/2))
 img = img[:,:,:,:]
 
 ### Use GAN to improve resolution
-netS.load_state_dict(torch.load('netG_epoch_985.pth',map_location='cpu'))
+netS.load_state_dict(torch.load('netG_epoch_490.pth',map_location='cpu'))
 fake = netS(img)
 fd = fake.detach()
 
