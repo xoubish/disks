@@ -124,10 +124,9 @@ netS = Shoobygen(ngpu).to(device)
 netS.load_state_dict(torch.load('keep_33.pth'))
 
 dataloader = torch.utils.data.DataLoader('gals_optim/MNIST/processed/test.pt', batch_size=1, shuffle=True, num_workers=1)
+i, data = enumerate(dataloader, 0)
 
-print(dataloader[0])
-inputs = dataloader[0]
-
+inputs = data
 real_cpu = inputs.to(device)
 ajab = real_cpu.detach()
 
