@@ -78,7 +78,9 @@ if torch.cuda.is_available() and not opt.cuda:
 
     
 dataset = dset.MNIST(root=opt.dataroot, download=True,
-                     transform=transforms.Compose([transforms.Resize(opt.imageSize),transforms.ToTensor(),transforms.Normalize((0.5,), (0.5,)),]))
+                     transform=transforms.Compose([transforms.Resize(opt.imageSize),transforms.ToTensor(),]))
+
+#transforms.Normalize((0.5,), (0.5,))
 nc=1
 
 assert dataset
