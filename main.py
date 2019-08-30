@@ -11,7 +11,7 @@ import torch.utils.data
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
-
+from photutils import create_matching_kernel
 import torch.nn.functional as F
 
 import astropy.io.fits as pyfits
@@ -189,7 +189,7 @@ fake_label = 0
 
 # setup optimizer
 optimizerD = optim.Adam(netD.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
-optimizerG = optim.Adam(netS.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
+optimizerS = optim.Adam(netS.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
 
 for epoch in range(opt.niter):
     for i, data in enumerate(dataloader, 0):
@@ -237,12 +237,12 @@ for epoch in range(opt.niter):
                  errD.item(), errG.item(), D_x, D_G_z1, D_G_z2))
         if i % 100 == 0:
             vutils.save_image(real_cpu,
-                    '%s/real_samples.png' % outf,
+                    '%s/real_samples.png' % opt.outf,
                     normalize=True)
             fake = netS(img)
             vutils.save_image(fake.detach(),
-                    '%s/fake_samples_epoch_%03d.png' % (outf, epoch),
+                    '%s/fake_samples_epoch_%03d.png' % (opt.outf, epoch),
                     normalize=True)
     # do checkpointing
-    torch.save(netS.state_dict(), '%s/netG_epoch_%d.pth' % (outf, epoch))
-    torch.save(netD.state_dict(), '%s/netD_epoch_%d.pth' % (outf, epoch))
+    torch.save(netS.state_dict(), '%s/netG_epoch_%d.pth' % (opt.outf, epoch))
+    torch.save(netD.state_dict(), '%s/netD_epoch_%d.pth' % (opt.outf, epoch))
