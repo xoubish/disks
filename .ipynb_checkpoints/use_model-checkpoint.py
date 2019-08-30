@@ -136,6 +136,7 @@ for i, data in enumerate(dataloader, 0):
     
     real_cpu = data[0].to(device)
     ajab = real_cpu.detach()
+    ajab = ajab.cpu()
 
     im = real_cpu+0.25*torch.rand_like(real_cpu)
     downsampled = F.upsample(im,scale_factor=1/3,mode='bilinear')
