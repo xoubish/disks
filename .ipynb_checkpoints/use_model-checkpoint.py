@@ -146,6 +146,8 @@ for i, data in enumerate(dataloader, 0):
     fake = netS(img)
     fd = fake.detach()
 
+    img = img.cpu()
+    fd = fd.cpu()
 
     plt.figure(figsize=(12,4))
     plt.subplot(1,3,1)
