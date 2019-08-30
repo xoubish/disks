@@ -123,12 +123,18 @@ class Shoobygen(nn.Module):
 netS = Shoobygen(ngpu).to(device)
 netS.load_state_dict(torch.load('keep_33.pth'))
 
-dataloader = torch.utils.data.DataLoader('gals_optim/MNIST/processed/test.pt', batch_size=1, shuffle=True, num_workers=int(opt.workers))
+
+dataset = dset.MNIST(root=opt.dataroot, download=True,
+                     transform=transforms.Compose([transforms.Resize(opt.imageSize),transforms.ToTensor(),transforms.Normalize((0.5,), (0.5,)),]))
+nc=1
+
+assert dataset
+dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True, num_workers=int(opt.workers))
 
 
 for i, data in enumerate(dataloader, 0):
     
-    real_cpu = data[0].cuda()
+    real_cpu = data[0].to(device)
     ajab = real_cpu.detach()
 
     im = real_cpu+0.25*torch.rand_like(real_cpu)
