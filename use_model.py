@@ -30,7 +30,7 @@ psfh = np.repeat(psfh[:,:,:,np.newaxis],1,axis = 3)
 kernel = torch.Tensor(psfh)
 kernel = kernel.permute(2,3,0,1)
 kernel =  kernel.float()
-#kernel = kernel.cuda()
+kernel = kernel.cuda()
 
 
 parser = argparse.ArgumentParser()
@@ -123,30 +123,31 @@ class Shoobygen(nn.Module):
 netS = Shoobygen(ngpu).to(device)
 netS.load_state_dict(torch.load('keep_33.pth'))
 
+
 dataloader = torch.utils.data.DataLoader('gals_optim/MNIST/processed/test.pt', batch_size=1, shuffle=True, num_workers=1)
-it = iter(dataloader)
-first = next(it)
-print(first)
-stop
-real_cpu = inputs.to(device)
-ajab = real_cpu.detach()
 
-im = real_cpu+0.25*torch.rand_like(real_cpu)
-downsampled = F.upsample(im,scale_factor=1/3,mode='bilinear')
-img = F.conv2d(downsampled, kernel,padding=int(((kernel.shape[3])-1)/2))
-img = img[:,:,:,:]
+for i, data in enumerate(dataloader, 0):
+    real_cpu = data[0].to(device)
+    ajab = real_cpu.detach()
 
-fake = netS(img)
-fd = fake.detach()
+    im = real_cpu+0.25*torch.rand_like(real_cpu)
+    downsampled = F.upsample(im,scale_factor=1/3,mode='bilinear')
+    img = F.conv2d(downsampled, kernel,padding=int(((kernel.shape[3])-1)/2))
+    img = img[:,:,:,:]
+
+    fake = netS(img)
+    fd = fake.detach()
 
 
-plt.figure(figsize=(12,4))
-plt.subplot(1,3,1)
-plt.imshow(ajab[0,0,:,:],origin='lower')
-plt.text(1,1,'Original (Galsim)',color='y')
-plt.subplot(1,3,2)
-plt.imshow(img[0,0,:,:],origin='lower')
-plt.text(1,1,'downgrade',color='y')
-plt.subplot(1,3,3)
-plt.imshow(fd[0,0,:,:],origin='lower')
-plt.text(1,1,'recovered',color='y')
+    plt.figure(figsize=(12,4))
+    plt.subplot(1,3,1)
+    plt.imshow(ajab[0,0,:,:],origin='lower')
+    plt.text(1,1,'Original (Galsim)',color='y')
+    plt.subplot(1,3,2)
+    plt.imshow(img[0,0,:,:],origin='lower')
+    plt.text(1,1,'downgrade',color='y')
+    plt.subplot(1,3,3)
+    plt.imshow(fd[0,0,:,:],origin='lower')
+    plt.text(1,1,'recovered',color='y')
+    plt.savefig('example_recovered_optim.png')
+    stop
