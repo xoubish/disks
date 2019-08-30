@@ -236,8 +236,8 @@ for epoch in range(opt.niter):
         D_G_z2 = output.mean().item()
         optimizerS.step()
         
-        writer.add_scalar('Generator/train', errG.item(), niter)
-        writer.add_scalar('Discriminator/train', errD.item(), niter)
+        writer.add_scalar('Generator/train', errG.item(), opt.niter)
+        writer.add_scalar('Discriminator/train', errD.item(), opt.niter)
 
         print('[%d/%d][%d/%d] Loss_D: %.4f Loss_G: %.4f D(x): %.4f D(G(z)): %.4f / %.4f'
               % (epoch, opt.niter, i, len(dataloader),
