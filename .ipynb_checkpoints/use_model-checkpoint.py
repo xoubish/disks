@@ -126,9 +126,10 @@ netS.load_state_dict(torch.load('keep_33.pth'))
 dataloader = torch.utils.data.DataLoader('gals_optim/MNIST/processed/test.pt', batch_size=1, shuffle=True, num_workers=1)
 
 it = iter(dataloader)
-inputs = next(it)
+real_cpu = next(it)
 
-real_cpu = inputs.to(device)
+#real_cpu = inputs.to(device)
+print(real_cpu.shape)
 ajab = real_cpu.detach()
 
 im = real_cpu+0.25*torch.rand_like(real_cpu)
