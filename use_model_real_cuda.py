@@ -121,7 +121,7 @@ class Shoobygen(nn.Module):
         return output1
 
 netS = Shoobygen(ngpu).to(device)
-netS.load_state_dict(torch.load('keep_33.pth'))
+netS.load_state_dict(torch.load('sep4_netG_galoptim_500.pth'))
 
 
 ### read in an image with HST resoluion and downgrade (resample, PSF convolve, add noise) to HSC 
