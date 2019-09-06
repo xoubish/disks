@@ -51,6 +51,7 @@ parser.add_argument('--netG', default='', help="path to netG (to continue traini
 parser.add_argument('--netD', default='', help="path to netD (to continue training)")
 parser.add_argument('--outf', default='.', help='folder to output images and model checkpoints')
 parser.add_argument('--manualSeed', type=int, help='manual seed')
+parser.add_argument('--outname',default='example_GAN_trained.png',help='name of output figure')
 
 opt = parser.parse_args()
 print(opt)
@@ -121,11 +122,11 @@ class Shoobygen(nn.Module):
         return output1
 
 netS = Shoobygen(ngpu).to(device)
-netS.load_state_dict(torch.load('sep4_netG_galoptim_500.pth'))
+netS.load_state_dict(torch.load('sep5_netG_galoptim_1000.pth'))
 
 
 ### read in an image with HST resoluion and downgrade (resample, PSF convolve, add noise) to HSC 
-dataset = dset.MNIST(root=dataroot, download=True, transform=transforms.Compose([transforms.Resize(opt.imageSize),transforms.ToTensor(),transforms.Normalize((0.5,), (0.5,)),]))
+dataset = dset.MNIST(root=opt.dataroot, download=True, transform=transforms.Compose([transforms.Resize(opt.imageSize),transforms.ToTensor(),transforms.Normalize((0.5,), (0.5,)),]))
 nc=1
 
 assert dataset
@@ -156,4 +157,4 @@ plt.text(1,1,'downgrade',color='y')
 plt.subplot(1,3,3)
 plt.imshow(fd[0,0,:,:],origin='lower')
 plt.text(1,1,'recovered',color='y')
-plt.savefig('example_recovered_optim.png')
+plt.savefig(opt.outname)
