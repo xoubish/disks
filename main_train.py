@@ -42,14 +42,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', help='cifar10 | lsun | mnist |imagenet | folder | lfw | fake')
 parser.add_argument('--dataroot', default='gals_optim/', help='path to dataset')
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=4)
-parser.add_argument('--batchSize', type=int, default=32, help='input batch size')
+parser.add_argument('--batchSize', type=int, default=64, help='input batch size')
 parser.add_argument('--imageSize', type=int, default=64, help='the height / width of the input image to network')
 parser.add_argument('--nz', type=int, default=100, help='size of the latent z vector')
 parser.add_argument('--ngf', type=int, default=64)
 parser.add_argument('--ndf', type=int, default=64)
 parser.add_argument('--niter', type=int, default=1000, help='number of epochs to train for')
-parser.add_argument('--lr', type=float, default=0.001, help='learning rate, default=0.0002')
-parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for adam. default=0.5')
+parser.add_argument('--lr', type=float, default=0.0002, help='learning rate, default=0.0002')
+parser.add_argument('--beta1', type=float, default=0.8, help='beta1 for adam. default=0.5')
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
 parser.add_argument('--ngpu', type=int, default=3, help='number of GPUs to use')
 parser.add_argument('--netS', default='', help="path to netS (to continue training)")
@@ -111,15 +111,15 @@ class Shoobygen(nn.Module):
         self.main = nn.Sequential(
             
             
-            nn.ConvTranspose2d( 1, ngf*8, 5, 2, 1, bias=False),
+            nn.ConvTranspose2d( 1, ngf*8, 4, 1, 2, bias=False),
             nn.BatchNorm2d(ngf*8),
             nn.ReLU(True),
             
-            nn.ConvTranspose2d(ngf*8, ngf*4, 2, 1, 5, bias=False),
+            nn.ConvTranspose2d(ngf*8, ngf*4, 2, 2, 2, bias=False),
             nn.BatchNorm2d(ngf*4),
             nn.ReLU(True),
   
-            nn.ConvTranspose2d(ngf*4, nc, 3, 2, 2, bias=False),
+            nn.ConvTranspose2d(ngf*4, nc, 2, 2, 4, bias=False),
             nn.Tanh()
         )
 
@@ -190,7 +190,7 @@ real_label = 1
 fake_label = 0
 
 # setup optimizer
-optimizerD = optim.Adam(netD.parameters(), lr=0.0001, betas=(opt.beta1, 0.999))
+optimizerD = optim.Adam(netD.parameters(), lr=0.00001, betas=(opt.beta1, 0.999))
 optimizerS = optim.Adam(netS.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
 
 writer = SummaryWriter()
@@ -213,7 +213,7 @@ for epoch in range(opt.niter):
 
         # train with resampled, lower res, noise added images
         kernel = kernel.to(device)
-        im = real_cpu+0.1*torch.rand_like(real_cpu)
+        im = real_cpu+0.25*torch.rand_like(real_cpu)
         downsampled = F.upsample(im,scale_factor=1/3,mode='bilinear')
         img = F.conv2d(downsampled, kernel,padding=int(((kernel.shape[3])-1)/2))
         img = img[:,:,:,:]
