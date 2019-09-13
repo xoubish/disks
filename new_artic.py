@@ -115,15 +115,15 @@ class Shoobygen(nn.Module):
             nn.LeakyReLU(0.2, inplace=True),
             
             
-            nn.ConvTranspose2d( ngf*4, ngf * 8, 6, 3, 2,dilation=2, bias=False),
-            nn.BatchNorm2d(ngf * 8),
+            nn.ConvTranspose2d( ngf*4, ngf * 2, 6, 3, 2,dilation=2, bias=False),
+            nn.BatchNorm2d(ngf * 2),
             nn.ReLU(True),
             
-            nn.ConvTranspose2d(ngf * 8, ngf * 4, 3, 2, 2, bias=False),
-            nn.BatchNorm2d(ngf * 4),
-            nn.ReLU(True),
+            nn.ConvTranspose2d(ngf * 2, nc, 3, 2, 2, bias=False),
+           # nn.BatchNorm2d(ngf * 4),
+           # nn.ReLU(True),
   
-            nn.ConvTranspose2d(ngf*4, nc, 4, 1, 1, bias=False),
+            #nn.ConvTranspose2d(ngf*4, nc, 4, 1, 1, bias=False),
             nn.Tanh()
         )
 
