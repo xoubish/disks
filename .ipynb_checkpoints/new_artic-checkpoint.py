@@ -40,7 +40,7 @@ kernel = kernel.cuda()
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', help='cifar10 | lsun | mnist |imagenet | folder | lfw | fake')
-parser.add_argument('--dataroot', default='gals_optim/', help='path to dataset')
+parser.add_argument('--dataroot', default='gals_blend/', help='path to dataset')
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=4)
 parser.add_argument('--batchSize', type=int, default=64, help='input batch size')
 parser.add_argument('--imageSize', type=int, default=64, help='the height / width of the input image to network')
@@ -115,15 +115,15 @@ class Shoobygen(nn.Module):
             nn.LeakyReLU(0.2, inplace=True),
             
             
-            nn.ConvTranspose2d( ngf*4, ngf * 8, 6, 3, 2,dilation=2, bias=False),
-            nn.BatchNorm2d(ngf * 8),
+            nn.ConvTranspose2d( ngf*4, ngf * 2, 6, 3, 2,dilation=2, bias=False),
+            nn.BatchNorm2d(ngf * 2),
             nn.ReLU(True),
             
-            nn.ConvTranspose2d(ngf * 8, ngf * 4, 3, 2, 2, bias=False),
-            nn.BatchNorm2d(ngf * 4),
-            nn.ReLU(True),
+            nn.ConvTranspose2d(ngf * 2, nc, 3, 2, 2, bias=False),
+           # nn.BatchNorm2d(ngf * 4),
+           # nn.ReLU(True),
   
-            nn.ConvTranspose2d(ngf*4, nc, 4, 1, 1, bias=False),
+            #nn.ConvTranspose2d(ngf*4, nc, 4, 1, 1, bias=False),
             nn.Tanh()
         )
 
