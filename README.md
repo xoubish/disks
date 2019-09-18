@@ -28,3 +28,6 @@ python image_gan_test.py --output boz.png
 Current status of creating galaxies with GAN:
 
 ![nice_fakes](https://github.com/xoubish/disks/blob/master/nice_fake.png)
+
+Did I hear you say blending?
+![blended](https://github.com/xoubish/disks/blob/master/blending.png)
