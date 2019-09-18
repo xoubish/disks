@@ -25,3 +25,6 @@ To try using the trained GAN run the line below. It will randomly choose an HST 
 
 python image_gan_test.py --output boz.png
 
+Current status of creating galaxies with GAN:
+
+![nice_fakes](https://github.com/xoubish/disks/blob/master/nice_fake.png)
