@@ -27,8 +27,8 @@ from scipy.ndimage import zoom
 psf = pyfits.getdata('psf_i.fits')
 psf = downscale_local_mean(psf,(3,3))
 psf = psf[7:-8,7:-8]#[22:-22,22:-22]
-psf_hsc = pyfits.getdata('psf-calexp-s16a_wide-HSC-I-15827-7,2-236.00000-42.00000.fits')
-psf_hsc = psf_hsc[0:41,1:42]
+psf_hsc = pyfits.getdata('PSF_subaru_i.fits')
+psf_hsc = psf_hsc[1:42,1:42]
 kern = create_matching_kernel(psf,psf_hsc)
 psfh = np.repeat(kern[:,:, np.newaxis], 1, axis=2)
 psfh = np.repeat(psfh[:,:,:,np.newaxis],1,axis = 3)
@@ -40,7 +40,7 @@ kernel = kernel.cuda()
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', help='cifar10 | lsun | mnist |imagenet | folder | lfw | fake')
-parser.add_argument('--dataroot', default='gals_blend/', help='path to dataset')
+parser.add_argument('--dataroot', default='gals_candels/', help='path to dataset')
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=4)
 parser.add_argument('--batchSize', type=int, default=64, help='input batch size')
 parser.add_argument('--imageSize', type=int, default=64, help='the height / width of the input image to network')
@@ -120,10 +120,6 @@ class Shoobygen(nn.Module):
             nn.ReLU(True),
             
             nn.ConvTranspose2d(ngf * 2, nc, 3, 2, 2, bias=False),
-           # nn.BatchNorm2d(ngf * 4),
-           # nn.ReLU(True),
-  
-            #nn.ConvTranspose2d(ngf*4, nc, 4, 1, 1, bias=False),
             nn.Tanh()
         )
 
