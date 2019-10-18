@@ -24,7 +24,7 @@ from torch.utils.tensorboard import SummaryWriter
 from skimage.transform import downscale_local_mean
 from scipy.ndimage import zoom
 
-psf = pyfits.getdata('psf_i.fits')
+psf = pyfits.getdata('psf_gsd_f814w_full_60mas.fits')
 psf = downscale_local_mean(psf,(3,3))
 psf = psf[7:-8,7:-8]#[22:-22,22:-22]
 psf_hsc = pyfits.getdata('PSF_subaru_i.fits')
