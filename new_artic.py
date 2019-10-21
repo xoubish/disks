@@ -40,7 +40,7 @@ kernel = kernel.cuda()
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', help='cifar10 | lsun | mnist |imagenet | folder | lfw | fake')
-parser.add_argument('--dataroot', default='gals_blend/', help='path to dataset')
+parser.add_argument('--dataroot', default='gals_candels/', help='path to dataset')
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=4)
 parser.add_argument('--batchSize', type=int, default=64, help='input batch size')
 parser.add_argument('--imageSize', type=int, default=64, help='the height / width of the input image to network')
@@ -210,7 +210,7 @@ for epoch in range(opt.niter):
 
         # train with resampled, lower res, noise added images
         kernel = kernel.to(device)
-        im = real_cpu+1.25*torch.rand_like(real_cpu)
+        im = real_cpu+1.2*torch.rand_like(real_cpu)
         downsampled = F.upsample(im,scale_factor=1/3,mode='bilinear')
         img = F.conv2d(downsampled, kernel,padding=int(((kernel.shape[3])-1)/2))
         img = img[:,:,:,:]
