@@ -160,8 +160,8 @@ real_label = 1
 fake_label = 0
 
 # setup optimizer
-optimizerD = optim.Adam(netD.parameters(), lr=0.00002, betas=(0.5, 0.999))
-optimizerG = optim.Adam(netG.parameters(), lr=0.002, betas=(0.8, 0.999))
+optimizerD = optim.Adam(netD.parameters(), lr=0.0001, betas=(0.5, 0.999))
+optimizerG = optim.Adam(netG.parameters(), lr=0.0005, betas=(0.9, 0.999))
 
 
 writer = SummaryWriter()
