@@ -1,3 +1,5 @@
+#### Added by Shooby OCt 22nd###########
+
 from __future__ import print_function
 import argparse
 import os
@@ -158,7 +160,7 @@ real_label = 1
 fake_label = 0
 
 # setup optimizer
-optimizerD = optim.Adam(netD.parameters(), lr=0.0002, betas=(0.5, 0.999))
+optimizerD = optim.Adam(netD.parameters(), lr=0.00002, betas=(0.5, 0.999))
 optimizerG = optim.Adam(netG.parameters(), lr=0.002, betas=(0.8, 0.999))
 
 
