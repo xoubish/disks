@@ -210,7 +210,7 @@ for epoch in range(opt.niter):
 
         # train with resampled, lower res, noise added images
         kernel = kernel.to(device)
-        im = real_cpu+1.2*torch.rand_like(real_cpu)
+        im = real_cpu+0.25*torch.rand_like(real_cpu)
         downsampled = F.upsample(im,scale_factor=1/3,mode='bilinear')
         img = F.conv2d(downsampled, kernel,padding=int(((kernel.shape[3])-1)/2))
         img = img[:,:,:,:]
