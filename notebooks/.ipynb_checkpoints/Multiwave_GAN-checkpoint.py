@@ -246,11 +246,11 @@ for epoch in range(opt.niter):
               % (epoch, opt.niter, i, len(dataloader),
                  errD.item(), errG.item(), D_x, D_G_z1, D_G_z2))
         if i % 100 == 0:
-            real_cp = real_cpu[:,3,:,:].reshape(batchSize,1,64,64)        
-            vutils.save_image(real_cp,'%s/real_samples.png' % outf, normalize=True)
+            real_cp = real_cpu[:,3,:,:].reshape(opt.batchSize,1,opt.imageSize,opt.imageSize)        
+            vutils.save_image(real_cp,'%s/real_samples.png' % opt.outf, normalize=True)
             fake = netS(img)
-            fak = fake[:,3,:,:].reshape(batchSize,1,66,66)
-            vutils.save_image(fak.detach(),'%s/fake_samples_epoch_%03d.png' % (outf, epoch),normalize=True)
+            fak = fake[:,3,:,:].reshape(opt.batchSize,1,opt.imageSize,opt.imageSize)
+            vutils.save_image(fak.detach(),'%s/fake_samples_epoch_%03d.png' % (opt.outf, epoch),normalize=True)
             grid = torchvision.utils.make_grid(fak.detach())
             writer.add_image('images',grid,i)
 
