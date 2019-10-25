@@ -27,10 +27,10 @@ from scipy.ndimage import zoom
 from galaxy_hdf5loader import galaxydata
 
 
-psf = pyfits.getdata('psf_gsd_f814w_full_60mas.fits')
+psf = pyfits.getdata('../psfs/psf_gsd_f814w_full_60mas.fits')
 psf = downscale_local_mean(psf,(3,3))
 psf = psf[7:-8,7:-8]#[22:-22,22:-22]
-psf_hsc = pyfits.getdata('PSF_subaru_i.fits')
+psf_hsc = pyfits.getdata('../psfs/PSF_subaru_i.fits')
 psf_hsc = psf_hsc[1:42,1:42]
 kern = create_matching_kernel(psf,psf_hsc)
 psfh = np.repeat(kern[:,:, np.newaxis], 1, axis=2)
@@ -56,7 +56,7 @@ parser.add_argument('--cuda', action='store_true', help='enables cuda')
 parser.add_argument('--ngpu', type=int, default=3, help='number of GPUs to use')
 parser.add_argument('--netS', default='', help="path to netS (to continue training)")
 parser.add_argument('--netD', default='', help="path to netD (to continue training)")
-parser.add_argument('--outf', default='outputs/', help='folder to output images and model checkpoints')
+parser.add_argument('--outf', default='../outputs/', help='folder to output images and model checkpoints')
 parser.add_argument('--manualSeed', type=int, help='manual seed')
 
 opt = parser.parse_args()
