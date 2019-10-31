@@ -29,9 +29,9 @@ from galaxy_hdf5loader import galaxydata
 
 psf = pyfits.getdata('../psfs/psf_gsd_f814w_full_60mas.fits')
 psf = downscale_local_mean(psf,(3,3))
-psf = psf[7:-8,7:-8]#[22:-22,22:-22]
+psf = psf[8:-8,8:-8]#[22:-22,22:-22]
 psf_hsc = pyfits.getdata('../psfs/PSF_subaru_i.fits')
-psf_hsc = psf_hsc[1:42,1:42]
+psf_hsc = psf_hsc[2:42,2:42]
 kern = create_matching_kernel(psf,psf_hsc)
 psfh = np.repeat(kern[:,:, np.newaxis], 1, axis=2)
 psfh = np.repeat(psfh[:,:,:,np.newaxis],1,axis = 3)
@@ -188,7 +188,7 @@ fake_label = 0
 optimizerD = optim.Adam(netD.parameters(), lr=0.00001, betas=(opt.beta1, 0.999))
 optimizerS = optim.Adam(netS.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
 
-writer = SummaryWriter()
+writer = SummaryWriter(log_dir='../runs')
 
 for epoch in range(opt.niter):
     for i, data in enumerate(dataloader, 0):
@@ -209,11 +209,15 @@ for epoch in range(opt.niter):
 
         # train with resampled, lower res, noise added images
         kernel = kernel.to(device)
-        im = real_cpu+0.25*torch.rand_like(real_cpu)
-        downsampled = F.upsample(im,scale_factor=1/3,mode='bilinear')
-        downsampled_resh = downsampled.view(-1,1,21,21)
-        img2 = F.conv2d(downsampled_resh, kernel,padding=int(((kernel.shape[3])-1)/2))
+        #im = real_cpu+0.25*torch.rand_like(real_cpu)
+        #downsampled = F.upsample(im,scale_factor=1/3,mode='bilinear')
+        #downsampled_resh = downsampled.view(-1,1,21,21)
+        #img2 = F.conv2d(downsampled_resh, kernel,padding=int(((kernel.shape[3])-1)/2))
+
+        downsampled_resh = real_cpu.view(-1,1,64,64)
+        img2 = F.conv2d(downsampled_resh, kernel,padding=8,stride=2)
         img = img2.view(-1,7,21,21)
+        img = img+0.25*torch.rand_like(img)
         img = img[:,:,:,:]
         
         fake = netS(img)
