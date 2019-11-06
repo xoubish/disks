@@ -230,6 +230,7 @@ for epoch in range(opt.niter):
             imagetoconvolv = real_cpu[:,ch,:,:].reshape(-1,1,64,64)
             kerneltoconvolv = kernel[:,ch,:,:].reshape(-1,1,40,40)
             ajab = F.conv2d(imagetoconvolv, kerneltoconvolv,padding=8,stride=2)
+            print(ajab.shape)
             img2[:,ch,...] = ajab
         img = img2.view(-1,nc,21,21)
         img = img+0.25*torch.rand_like(img)
