@@ -193,7 +193,7 @@ fake_label = 0
 optimizerD = optim.Adam(netD.parameters(), lr=0.00001, betas=(opt.beta1, 0.999))
 optimizerS = optim.Adam(netS.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
 
-writer = SummaryWriter(log_dir='../runs')
+writer = SummaryWriter(log_dir='runs')
 
 for epoch in range(opt.niter):
     for i, data in enumerate(dataloader, 0):
