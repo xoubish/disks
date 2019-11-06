@@ -232,7 +232,7 @@ for epoch in range(opt.niter):
             img2[:,ch,...] = (F.conv2d(imagetoconvolv, kerneltoconvolv,padding=8,stride=2)).data.squeeze()
         img = img2.view(-1,nc,21,21)
         img = img+0.25*torch.rand_like(img)
-        img = img[:,:,:,:].float()
+        img = img[:,:,:,:].float().cuda()
  
         fake = netS(img)
         label.fill_(fake_label)
