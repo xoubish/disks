@@ -1,3 +1,5 @@
+#### Added by Shooby OCt 22nd###########
+
 from __future__ import print_function
 import argparse
 import os
@@ -20,35 +22,13 @@ import astropy.io.fits as pyfits
 import numpy as np
 
 from torch.utils.tensorboard import SummaryWriter
+
 from skimage.transform import downscale_local_mean
 from scipy.ndimage import zoom
 
-from galaxy_hdf5loader import galaxydata
-
-nc=7
-
-hi_psfs = ['psf_b.fits','psf_v.fits', 'psf_i.fits', 'psf_z.fits', 'psf_y.fits', 'psf_j.fits', 'psf_h.fits']
-lo_psfs = ['PSF_subaru_i.fits','PSF_subaru_i.fits','PSF_subaru_i.fits','PSF_subaru_i.fits',
-           'PSF_subaru_i.fits','PSF_subaru_i.fits','PSF_subaru_i.fits']
-
-kernel = np.zeros((1,nc,40,40))
-for i in range(len(hi_psfs)):
-    psf = pyfits.getdata('../psfs/'+hi_psfs[i])
-    psf = downscale_local_mean(psf,(3,3))
-    psf = psf[8:-8,8:-8]#[22:-22,22:-22]
-
-    psf_hsc = pyfits.getdata('../psfs/'+lo_psfs[i])
-    psf_hsc = psf_hsc[2:42,2:42]
-
-    kernel[0,i,:,:] = create_matching_kernel(psf,psf_hsc)
-
-kernel = torch.Tensor(kernel)
-kernel =  kernel.float()
-kernel = kernel.cuda()
-
-
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', help='cifar10 | lsun | mnist |imagenet | folder | lfw | fake')
+parser.add_argument('--dataroot', default='gals_optim/', help='path to dataset')
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=4)
 parser.add_argument('--batchSize', type=int, default=64, help='input batch size')
 parser.add_argument('--imageSize', type=int, default=64, help='the height / width of the input image to network')
@@ -60,33 +40,19 @@ parser.add_argument('--lr', type=float, default=0.0002, help='learning rate, def
 parser.add_argument('--beta1', type=float, default=0.8, help='beta1 for adam. default=0.5')
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
 parser.add_argument('--ngpu', type=int, default=3, help='number of GPUs to use')
-parser.add_argument('--netS', default='', help="path to netS (to continue training)")
+parser.add_argument('--netG', default='', help="path to netS (to continue training)")
 parser.add_argument('--netD', default='', help="path to netD (to continue training)")
-parser.add_argument('--outf', default='../outputs/', help='folder to output images and model checkpoints')
+parser.add_argument('--outf', default='outputs/', help='folder to output images and model checkpoints')
 parser.add_argument('--manualSeed', type=int, help='manual seed')
 
 opt = parser.parse_args()
 print(opt)
 
-try:
-    os.makedirs(opt.outf)
-except OSError:
-    pass
+    
+dataset = dset.MNIST(root=opt.dataroot, download=True,
+                     transform=transforms.Compose([transforms.Resize(opt.imageSize),transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))]))
+nc=1
 
-if opt.manualSeed is None:
-    opt.manualSeed = random.randint(1, 10000)
-print("Random Seed: ", opt.manualSeed)
-random.seed(opt.manualSeed)
-torch.manual_seed(opt.manualSeed)
-
-cudnn.benchmark = True
-
-if torch.cuda.is_available() and not opt.cuda:
-    print("WARNING: You have a CUDA device, so you should probably run with --cuda")
-
-
-
-dataset = galaxydata('../Sample.hdf5')
 assert dataset
 dataloader = torch.utils.data.DataLoader(dataset, batch_size=opt.batchSize,shuffle=True, num_workers=int(opt.workers))
 
@@ -95,7 +61,6 @@ ngpu = int(opt.ngpu)
 nz = int(opt.nz)
 ngf = int(opt.ngf)
 ndf = int(opt.ndf)
-
 
 # custom weights initialization called on netG and netD
 def weights_init(m):
@@ -106,43 +71,46 @@ def weights_init(m):
         m.weight.data.normal_(1.0, 0.02)
         m.bias.data.fill_(0)
 
-
-class Shoobygen(nn.Module):
-
-    def __init__(self,ngpu):
-        super(Shoobygen, self).__init__()
+class Generator(nn.Module):
+    def __init__(self, ngpu):
+        super(Generator, self).__init__()
         self.ngpu = ngpu
         self.main = nn.Sequential(
-            
-            nn.Conv2d(nc, ngf * 4, 7, 2, 2, bias=False),
+            # input is Z, going into a convolution
+            nn.ConvTranspose2d(     nz, ngf * 8, 4, 1, 0, bias=False),
+            nn.BatchNorm2d(ngf * 8),
+            nn.ReLU(True),
+            # state size. (ngf*8) x 4 x 4
+            nn.ConvTranspose2d(ngf * 8, ngf * 4, 4, 2, 1, bias=False),
             nn.BatchNorm2d(ngf * 4),
-            nn.LeakyReLU(0.2, inplace=True),
-            
-            
-            nn.ConvTranspose2d( ngf*4, ngf * 2, 6, 3, 2,dilation=2, bias=False),
+            nn.ReLU(True),
+            # state size. (ngf*4) x 8 x 8
+            nn.ConvTranspose2d(ngf * 4, ngf * 2, 4, 2, 1, bias=False),
             nn.BatchNorm2d(ngf * 2),
             nn.ReLU(True),
-            
-            nn.ConvTranspose2d(ngf * 2, nc, 3, 2, 2, bias=False),
+            # state size. (ngf*2) x 16 x 16
+            nn.ConvTranspose2d(ngf * 2, ngf, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ngf),
+            nn.ReLU(True),
+            # state size. (ngf) x 32 x 32
+            nn.ConvTranspose2d(ngf, nc, 4, 2, 1, bias=False),
             nn.Tanh()
+            # state size. (nc) x 64 x 64
         )
 
     def forward(self, input):
         if input.is_cuda and self.ngpu > 1:
             output = nn.parallel.data_parallel(self.main, input, range(self.ngpu))
-            output1 = output[:,:,:,:]
-
         else:
             output = self.main(input)
-            output1 = output[:,:,:,:]
-
-        return output1
-
-netS = Shoobygen(ngpu).to(device)
-netS.apply(weights_init)
-print(netS)
+        return output
 
 
+netG = Generator(ngpu).to(device)
+netG.apply(weights_init)
+if opt.netG != '':
+    netG.load_state_dict(torch.load(opt.netG))
+print(netG)
 
 class Discriminator(nn.Module):
     def __init__(self, ngpu):
@@ -186,14 +154,16 @@ print(netD)
 
 criterion = nn.BCELoss()
 
+fixed_noise = torch.randn(opt.batchSize, nz, 1, 1, device=device)
 real_label = 1
 fake_label = 0
 
 # setup optimizer
-optimizerD = optim.Adam(netD.parameters(), lr=0.00001, betas=(opt.beta1, 0.999))
-optimizerS = optim.Adam(netS.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
+optimizerD = optim.Adam(netD.parameters(), lr=0.0001, betas=(0.5, 0.999))
+optimizerG = optim.Adam(netG.parameters(), lr=0.0005, betas=(0.9, 0.999))
 
-writer = SummaryWriter(log_dir='../runs')
+
+writer = SummaryWriter()
 
 for epoch in range(opt.niter):
     for i, data in enumerate(dataloader, 0):
@@ -206,36 +176,16 @@ for epoch in range(opt.niter):
         batch_size = real_cpu.size(0)
         label = torch.full((batch_size,), real_label, device=device)
 
-        real_cpu = real_cpu.float()
         output = netD(real_cpu)
         errD_real = criterion(output, label)
         errD_real.backward()
         D_x = output.mean().item()
 
-        # train with resampled, lower res, noise added images
-        #kernel = kernel.to(device)
-        #im = real_cpu+0.25*torch.rand_like(real_cpu)
-        #downsampled = F.upsample(im,scale_factor=1/3,mode='bilinear')
-        #downsampled_resh = downsampled.view(-1,1,21,21)
-        #img2 = F.conv2d(downsampled_resh, kernel,padding=int(((kernel.shape[3])-1)/2))
-        #downsampled_resh = real_cpu.view(-1,1,64,64)
-        #img2 = F.conv2d(downsampled_resh, kernel,padding=8,stride=2)
-        #img = img2.view(-1,7,21,21)
-        #img = img+0.25*torch.rand_like(img)
-        #img = img[:,:,:,:]
-        
-        kernel = kernel.to(device)
-        img2 = torch.tensor(np.zeros((batch_size,nc,21,21)))
-        for ch in range(real_cpu.shape[1]):
-            imagetoconvolv = real_cpu[:,ch,:,:].reshape(-1,1,64,64)
-            kerneltoconvolv = kernel[:,ch,:,:].reshape(-1,1,40,40)
-            img2[:,ch,...] = F.conv2d(imagetoconvolv, kerneltoconvolv,padding=8,stride=2)
-        img = img2.view(-1,nc,21,21)
-        img = img+0.25*torch.rand_like(img)
-        img = img[:,:,:,:].float()
- 
-        fake = netS(img)
+        # train with fake
+        noise = torch.randn(batch_size, nz, 1, 1, device=device)
+        fake = netG(noise)
         label.fill_(fake_label)
+        
         fd = fake.detach()
         output = netD(fd.float())
         errD_fake = criterion(output, label)
@@ -243,37 +193,36 @@ for epoch in range(opt.niter):
         D_G_z1 = output.mean().item()
         errD = errD_real + errD_fake
         optimizerD.step()
+        #stop
         ############################
         # (2) Update G network: maximize log(D(G(z)))
         ###########################
-        netS.zero_grad()
+        netG.zero_grad()
         label.fill_(real_label)  # fake labels are real for generator cost
         output = netD(fake)
         errG = criterion(output, label)
         errG.backward()
         D_G_z2 = output.mean().item()
-        optimizerS.step()
-        
+        optimizerG.step()
+
+
         writer.add_scalar('Generator/Error', errG.item(), epoch)
         writer.add_scalar('Discriminator/Error', errD.item(), epoch)
         writer.add_scalar('Discriminator/mean_out_real', D_x, epoch)
         writer.add_scalar('Discriminator/mean_out_fake', D_G_z1, epoch)
 
-
         print('[%d/%d][%d/%d] Loss_D: %.4f Loss_G: %.4f D(x): %.4f D(G(z)): %.4f / %.4f'
               % (epoch, opt.niter, i, len(dataloader),
                  errD.item(), errG.item(), D_x, D_G_z1, D_G_z2))
         if i % 100 == 0:
-            real_cp = real_cpu[:,3,:,:].reshape(opt.batchSize,1,opt.imageSize,opt.imageSize)        
-            vutils.save_image(real_cp,'%s/real_samples.png' % opt.outf, normalize=True)
-            fake = netS(img)
-            fak = fake[:,3,:,:].reshape(opt.batchSize,1,opt.imageSize,opt.imageSize)
-            vutils.save_image(fak.detach(),'%s/fake_samples_epoch_%03d.png' % (opt.outf, epoch),normalize=True)
-            grid = torchvision.utils.make_grid(fak.detach())
-            writer.add_image('images',grid,i)
+            vutils.save_image(real_cpu,
+                    '%s/real_samples.png' % opt.outf,
+                    normalize=True)
+            fake = netG(fixed_noise)
+            vutils.save_image(fake.detach(),
+                    '%s/fake_samples_epoch_%03d.png' % (opt.outf, epoch),
+                    normalize=True)
 
-            
     # do checkpointing
-    torch.save(netS.state_dict(), '%s/netG_epoch_%d.pth' % (opt.outf, epoch))
+    torch.save(netG.state_dict(), '%s/netG_epoch_%d.pth' % (opt.outf, epoch))
     torch.save(netD.state_dict(), '%s/netD_epoch_%d.pth' % (opt.outf, epoch))
-    writer.close()

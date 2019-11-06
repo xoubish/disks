@@ -20,23 +20,29 @@ import astropy.io.fits as pyfits
 import numpy as np
 
 from torch.utils.tensorboard import SummaryWriter
-
 from skimage.transform import downscale_local_mean
 from scipy.ndimage import zoom
 
 from galaxy_hdf5loader import galaxydata
 
+nc=7
 
-psf = pyfits.getdata('../psfs/psf_gsd_f814w_full_60mas.fits')
-psf = downscale_local_mean(psf,(3,3))
-psf = psf[8:-8,8:-8]#[22:-22,22:-22]
-psf_hsc = pyfits.getdata('../psfs/PSF_subaru_i.fits')
-psf_hsc = psf_hsc[2:42,2:42]
-kern = create_matching_kernel(psf,psf_hsc)
-psfh = np.repeat(kern[:,:, np.newaxis], 1, axis=2)
-psfh = np.repeat(psfh[:,:,:,np.newaxis],1,axis = 3)
-kernel = torch.Tensor(psfh)
-kernel = kernel.permute(2,3,0,1)
+hi_psfs = ['psf_b.fits','psf_v.fits', 'psf_i.fits', 'psf_z.fits', 'psf_y.fits', 'psf_j.fits', 'psf_h.fits']
+lo_psfs = ['PSF_subaru_i.fits','PSF_subaru_i.fits','PSF_subaru_i.fits','PSF_subaru_i.fits',
+           'PSF_subaru_i.fits','PSF_subaru_i.fits','PSF_subaru_i.fits']
+
+kernel = np.zeros((1,nc,40,40))
+for i in range(len(hi_psfs)):
+    psf = pyfits.getdata('../psfs/'+hi_psfs[i])
+    psf = downscale_local_mean(psf,(3,3))
+    psf = psf[8:-8,8:-8]#[22:-22,22:-22]
+
+    psf_hsc = pyfits.getdata('../psfs/'+lo_psfs[i])
+    psf_hsc = psf_hsc[2:42,2:42]
+
+    kernel[0,i,:,:] = create_matching_kernel(psf,psf_hsc)
+
+kernel = torch.Tensor(kernel)
 kernel =  kernel.float()
 kernel = kernel.cuda()
 
@@ -83,7 +89,6 @@ if torch.cuda.is_available() and not opt.cuda:
 dataset = galaxydata('../Sample.hdf5')
 assert dataset
 dataloader = torch.utils.data.DataLoader(dataset, batch_size=opt.batchSize,shuffle=True, num_workers=int(opt.workers))
-nc=7
 
 device = torch.device("cuda:0" if opt.cuda else "cpu")
 ngpu = int(opt.ngpu)
@@ -208,18 +213,27 @@ for epoch in range(opt.niter):
         D_x = output.mean().item()
 
         # train with resampled, lower res, noise added images
-        kernel = kernel.to(device)
+        #kernel = kernel.to(device)
         #im = real_cpu+0.25*torch.rand_like(real_cpu)
         #downsampled = F.upsample(im,scale_factor=1/3,mode='bilinear')
         #downsampled_resh = downsampled.view(-1,1,21,21)
         #img2 = F.conv2d(downsampled_resh, kernel,padding=int(((kernel.shape[3])-1)/2))
-
-        downsampled_resh = real_cpu.view(-1,1,64,64)
-        img2 = F.conv2d(downsampled_resh, kernel,padding=8,stride=2)
-        img = img2.view(-1,7,21,21)
-        img = img+0.25*torch.rand_like(img)
-        img = img[:,:,:,:]
+        #downsampled_resh = real_cpu.view(-1,1,64,64)
+        #img2 = F.conv2d(downsampled_resh, kernel,padding=8,stride=2)
+        #img = img2.view(-1,7,21,21)
+        #img = img+0.25*torch.rand_like(img)
+        #img = img[:,:,:,:]
         
+        kernel = kernel.to(device)
+        img2 = torch.tensor(np.zeros((batch_size,nc,21,21)))
+        for ch in range(real_cpu.shape[1]):
+            imagetoconvolv = real_cpu[:,ch,:,:].reshape(-1,1,64,64)
+            kerneltoconvolv = kernel[:,ch,:,:].reshape(-1,1,40,40)
+            img2[:,ch,...] = F.conv2d(imagetoconvolv, kerneltoconvolv,padding=8,stride=2)
+        img = img2.view(-1,nc,21,21)
+        img = img+0.25*torch.rand_like(img)
+        img = img[:,:,:,:].float()
+ 
         fake = netS(img)
         label.fill_(fake_label)
         fd = fake.detach()
