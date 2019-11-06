@@ -62,7 +62,7 @@ parser.add_argument('--cuda', action='store_true', help='enables cuda')
 parser.add_argument('--ngpu', type=int, default=3, help='number of GPUs to use')
 parser.add_argument('--netS', default='', help="path to netS (to continue training)")
 parser.add_argument('--netD', default='', help="path to netD (to continue training)")
-parser.add_argument('--outf', default='/DataDrive/hooshang/outputs/', help='folder to output images and model checkpoints')
+parser.add_argument('--outf', default='/DataDrive/hooshang/outputs', help='folder to output images and model checkpoints')
 parser.add_argument('--manualSeed', type=int, help='manual seed')
 
 opt = parser.parse_args()
@@ -190,10 +190,10 @@ real_label = 1
 fake_label = 0
 
 # setup optimizer
-optimizerD = optim.Adam(netD.parameters(), lr=0.00001, betas=(opt.beta1, 0.999))
-optimizerS = optim.Adam(netS.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
+optimizerD = optim.Adam(netD.parameters(), lr= 0.00001, betas=(opt.beta1, 0.999))
+optimizerS = optim.Adam(netS.parameters(), lr= opt.lr, betas=(opt.beta1, 0.999))
 
-writer = SummaryWriter(log_dir='runs')
+writer = SummaryWriter(log_dir='/DataDrive/hooshang/runs')
 
 for epoch in range(opt.niter):
     for i, data in enumerate(dataloader, 0):
