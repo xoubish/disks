@@ -267,6 +267,7 @@ for epoch in range(opt.niter):
             real_cp = real_cpu[:,3,:,:].reshape(opt.batchSize,1,opt.imageSize,opt.imageSize)        
             vutils.save_image(real_cp,'%s/real_samples.png' % opt.outf, normalize=True)
             fake = netS(img)
+            print(fake.shape)
             fak = fake[:,3,:,:].reshape(opt.batchSize,1,opt.imageSize,opt.imageSize)
             vutils.save_image(fak.detach(),'%s/fake_samples_epoch_%03d.png' % (opt.outf, epoch),normalize=True)
             grid = torchvision.utils.make_grid(fak.detach())
