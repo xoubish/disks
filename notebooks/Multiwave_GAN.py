@@ -114,16 +114,22 @@ class Shoobygen(nn.Module):
         self.ngpu = ngpu
         self.main = nn.Sequential(
             
-            nn.Conv2d(nc, ngf * 4, 7, 2, 2, bias=False),
+            #nn.Conv2d(nc, ngf * 4, 7, 2, 2, bias=False),
+            #nn.BatchNorm2d(ngf * 4),
+            #nn.LeakyReLU(0.2, inplace=True),
+            
+            
+            #nn.ConvTranspose2d( ngf*4, ngf * 2, 6, 3, 2,dilation=2, bias=False),
+            #nn.BatchNorm2d(ngf * 2),
+            #nn.ReLU(True),
+            
+            #nn.ConvTranspose2d(ngf * 2, nc, 3, 2, 2, bias=False),
+            #nn.Tanh()
+            
+            nn.Conv2d(ngc, ngf * 4, 3, 1, 0, bias=False),
             nn.BatchNorm2d(ngf * 4),
             nn.LeakyReLU(0.2, inplace=True),
-            
-            
-            nn.ConvTranspose2d( ngf*4, ngf * 2, 6, 3, 2,dilation=2, bias=False),
-            nn.BatchNorm2d(ngf * 2),
-            nn.ReLU(True),
-            
-            nn.ConvTranspose2d(ngf * 2, nc, 3, 2, 2, bias=False),
+            nn.ConvTranspose2d(ngf*4, ngc, 10, 3, 0, bias=False),
             nn.Tanh()
         )
 
