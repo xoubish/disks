@@ -33,11 +33,11 @@ lo_psfs = ['PSF_subaru_i.fits','PSF_subaru_i.fits','PSF_subaru_i.fits','PSF_suba
 
 kernel = np.zeros((1,nc,40,40))
 for i in range(len(hi_psfs)):
-    psf = pyfits.getdata('../psfs/'+hi_psfs[i])
+    psf = pyfits.getdata('psfs/'+hi_psfs[i])
     psf = downscale_local_mean(psf,(3,3))
     psf = psf[8:-8,8:-8]#[22:-22,22:-22]
 
-    psf_hsc = pyfits.getdata('../psfs/'+lo_psfs[i])
+    psf_hsc = pyfits.getdata('psfs/'+lo_psfs[i])
     psf_hsc = psf_hsc[2:42,2:42]
 
     kernel[0,i,:,:] = create_matching_kernel(psf,psf_hsc)
@@ -62,7 +62,7 @@ parser.add_argument('--cuda', action='store_true', help='enables cuda')
 parser.add_argument('--ngpu', type=int, default=3, help='number of GPUs to use')
 parser.add_argument('--netS', default='', help="path to netS (to continue training)")
 parser.add_argument('--netD', default='', help="path to netD (to continue training)")
-parser.add_argument('--outf', default='../outputs', help='folder to output images and model checkpoints')
+parser.add_argument('--outf', default='outputs', help='folder to output images and model checkpoints')
 parser.add_argument('--manualSeed', type=int, help='manual seed')
 
 opt = parser.parse_args()
@@ -86,7 +86,7 @@ if torch.cuda.is_available() and not opt.cuda:
 
 
 
-dataset = galaxydata('../Sample.hdf5')
+dataset = galaxydata('Sample.hdf5')
 assert dataset
 dataloader = torch.utils.data.DataLoader(dataset, batch_size=opt.batchSize,shuffle=True, num_workers=int(opt.workers))
 
@@ -113,23 +113,22 @@ class Shoobygen(nn.Module):
         super(Shoobygen, self).__init__()
         self.ngpu = ngpu
         self.main = nn.Sequential(
-            
-            #nn.Conv2d(nc, ngf * 4, 7, 2, 2, bias=False),
-            #nn.BatchNorm2d(ngf * 4),
-            #nn.LeakyReLU(0.2, inplace=True),
-            
-            
-            #nn.ConvTranspose2d( ngf*4, ngf * 2, 6, 3, 2,dilation=2, bias=False),
-            #nn.BatchNorm2d(ngf * 2),
-            #nn.ReLU(True),
-            
-            #nn.ConvTranspose2d(ngf * 2, nc, 3, 2, 2, bias=False),
-            #nn.Tanh()
-            
-            nn.Conv2d(ngc, ngf * 4, 3, 1, 0, bias=False),
+
+            nn.Conv2d(nc, ngf * 4, 3, 1, 0, bias=False),
             nn.BatchNorm2d(ngf * 4),
             nn.LeakyReLU(0.2, inplace=True),
-            nn.ConvTranspose2d(ngf*4, ngc, 10, 3, 0, bias=False),
+            
+            
+            nn.ConvTranspose2d( ngf*4, ngf * 8, 12, 1, 0, bias=False),
+            nn.BatchNorm2d(ngf * 8),
+            nn.ReLU(True),
+            
+            nn.ConvTranspose2d(ngf * 8, ngf * 4, 5, 2, 0, bias=False),
+            nn.BatchNorm2d(ngf * 4),
+            nn.ReLU(True),
+
+            
+            nn.ConvTranspose2d(ngf*4, nc, 2, 1, 0, bias=False),
             nn.Tanh()
         )
 
@@ -269,14 +268,14 @@ for epoch in range(opt.niter):
         print('[%d/%d][%d/%d] Loss_D: %.4f Loss_G: %.4f D(x): %.4f D(G(z)): %.4f / %.4f'
               % (epoch, opt.niter, i, len(dataloader),
                  errD.item(), errG.item(), D_x, D_G_z1, D_G_z2))
-        if i % 100 == 0:
-            real_cp = real_cpu[:,3,:,:].reshape(opt.batchSize,1,opt.imageSize,opt.imageSize)        
-            vutils.save_image(real_cp,'%s/real_samples.png' % opt.outf, normalize=True)
-            fake = netS(img)
-            fak = fake[:,3,:,:].reshape(opt.batchSize,1,opt.imageSize+1,opt.imageSize+1)
-            vutils.save_image(fak.detach(),'%s/fake_samples_epoch_%03d.png' % (opt.outf, epoch),normalize=True)
-            grid = torchvision.utils.make_grid(fak.detach())
-            writer.add_image('images',grid,i)
+        #if i % 100 == 0:
+            #real_cp = real_cpu[:,3,:,:].reshape(opt.batchSize,1,opt.imageSize,opt.imageSize)        
+            #vutils.save_image(real_cp,'%s/real_samples.png' % opt.outf, normalize=True)
+            #fake = netS(img)
+            #fak = fake[:,3,:,:].reshape(opt.batchSize,1,opt.imageSize,opt.imageSize)
+            #vutils.save_image(fak.detach(),'%s/fake_samples_epoch_%03d.png' % (opt.outf, epoch),normalize=True)
+            #grid = torchvision.utils.make_grid(fak.detach())
+            #writer.add_image('images',grid,i)
 
             
     # do checkpointing
