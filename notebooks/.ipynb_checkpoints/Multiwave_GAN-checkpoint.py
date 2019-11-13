@@ -27,11 +27,11 @@ from galaxy_hdf5loader import galaxydata
 
 nc=7
 
-hi_psfs = ['psf_b.fits','psf_v.fits', 'psf_i.fits', 'psf_z.fits', 'psf_y.fits', 'psf_j.fits', 'psf_h.fits']
+hi_psfs = ['psf_b.fits','psf_v.fits', 'psf_i.fits','psf_i.fits', 'psf_z.fits', 'psf_j.fits', 'psf_h.fits']
 lo_psfs = ['PSF_subaru_i.fits','PSF_subaru_i.fits','PSF_subaru_i.fits','PSF_subaru_i.fits',
            'PSF_subaru_i.fits','PSF_subaru_i.fits','PSF_subaru_i.fits']
 
-kernel = np.zeros((1,nc,40,40))
+kernel = np.zeros((1,nc,20,20))
 for i in range(len(hi_psfs)):
     psf = pyfits.getdata('psfs/'+hi_psfs[i])
     psf = downscale_local_mean(psf,(3,3))
@@ -39,8 +39,8 @@ for i in range(len(hi_psfs)):
 
     psf_hsc = pyfits.getdata('psfs/'+lo_psfs[i])
     psf_hsc = psf_hsc[2:42,2:42]
-
-    kernel[0,i,:,:] = create_matching_kernel(psf,psf_hsc)
+    a = create_matching_kernel(psf,psf_hsc)
+    kernel[0,i,:,:] = a[10:-10,10:-10]
 
 kernel = torch.Tensor(kernel)
 kernel =  kernel.float()
@@ -114,21 +114,21 @@ class Shoobygen(nn.Module):
         self.ngpu = ngpu
         self.main = nn.Sequential(
 
-            nn.Conv2d(nc, ngf * 4, 3, 1, 0, bias=False),
+            nn.Conv2d(nc, ngf * 4, 4, 1, 0, bias=False),
             nn.BatchNorm2d(ngf * 4),
             nn.LeakyReLU(0.2, inplace=True),
             
             
-            nn.ConvTranspose2d( ngf*4, ngf * 8, 12, 1, 0, bias=False),
+            nn.ConvTranspose2d( ngf*4, ngf * 8, 3, 3, 0, bias=False),
             nn.BatchNorm2d(ngf * 8),
             nn.ReLU(True),
             
-            nn.ConvTranspose2d(ngf * 8, ngf * 4, 5, 2, 0, bias=False),
+            nn.ConvTranspose2d(ngf * 8, ngf * 4, 7, 1, 1, bias=False),
             nn.BatchNorm2d(ngf * 4),
             nn.ReLU(True),
 
             
-            nn.ConvTranspose2d(ngf*4, nc, 2, 1, 0, bias=False),
+            nn.ConvTranspose2d(ngf*4, nc, 4, 1, 0, bias=False),
             nn.Tanh()
         )
 
@@ -230,12 +230,18 @@ for epoch in range(opt.niter):
         #img = img[:,:,:,:]
         
         kernel = kernel.to(device)
-        img2 = torch.tensor(np.zeros((batch_size,nc,21,21)))
+        img2 = torch.tensor(np.zeros((batch_size,nc,22,22)))
         for ch in range(real_cpu.shape[1]):
             imagetoconvolv = real_cpu[:,ch,:,:].reshape(-1,1,64,64)
-            kerneltoconvolv = kernel[:,ch,:,:].reshape(-1,1,40,40)
-            img2[:,ch,...] = (F.conv2d(imagetoconvolv, kerneltoconvolv,padding=8,stride=2)).data.squeeze()
-        img = img2.view(-1,nc,21,21)
+            kerneltoconvolv = kernel[:,ch,:,:].reshape(-1,1,20,20)
+            
+            a = F.conv2d(imagetoconvolv, kerneltoconvolv).data.squeeze()
+            a = a.reshape(-1,1,45,45)
+            downsampled = F.upsample(a,scale_factor=1/2,mode='bilinear')
+            img2[:,ch,...] = downsampled[:,0,:,:]
+            
+            
+        img = img2.view(-1,nc,22,22)
         img = img+0.25*torch.rand_like(img)
         img = img[:,:,:,:].float().cuda()
  
@@ -268,14 +274,14 @@ for epoch in range(opt.niter):
         print('[%d/%d][%d/%d] Loss_D: %.4f Loss_G: %.4f D(x): %.4f D(G(z)): %.4f / %.4f'
               % (epoch, opt.niter, i, len(dataloader),
                  errD.item(), errG.item(), D_x, D_G_z1, D_G_z2))
-        #if i % 100 == 0:
-            #real_cp = real_cpu[:,3,:,:].reshape(opt.batchSize,1,opt.imageSize,opt.imageSize)        
-            #vutils.save_image(real_cp,'%s/real_samples.png' % opt.outf, normalize=True)
-            #fake = netS(img)
-            #fak = fake[:,3,:,:].reshape(opt.batchSize,1,opt.imageSize,opt.imageSize)
-            #vutils.save_image(fak.detach(),'%s/fake_samples_epoch_%03d.png' % (opt.outf, epoch),normalize=True)
-            #grid = torchvision.utils.make_grid(fak.detach())
-            #writer.add_image('images',grid,i)
+        if i % 100 == 0:
+            real_cp = real_cpu[:,3,:,:].reshape(opt.batchSize,1,opt.imageSize,opt.imageSize)        
+            vutils.save_image(real_cp,'%s/real_samples.png' % opt.outf, normalize=True)
+            fake = netS(img)
+            fak = fake[:,3,:,:].reshape(opt.batchSize,1,opt.imageSize,opt.imageSize)
+            vutils.save_image(fak.detach(),'%s/fake_samples_epoch_%03d.png' % (opt.outf, epoch),normalize=True)
+            grid = torchvision.utils.make_grid(fak.detach())
+            writer.add_image('images',grid,i)
 
             
     # do checkpointing
