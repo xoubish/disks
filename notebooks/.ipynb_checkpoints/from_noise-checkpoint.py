@@ -28,7 +28,7 @@ from scipy.ndimage import zoom
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', help='cifar10 | lsun | mnist |imagenet | folder | lfw | fake')
-parser.add_argument('--dataroot', default='gals_candels/', help='path to dataset')
+parser.add_argument('--dataroot', default='../gals_candels/', help='path to dataset')
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=4)
 parser.add_argument('--batchSize', type=int, default=64, help='input batch size')
 parser.add_argument('--imageSize', type=int, default=64, help='the height / width of the input image to network')
@@ -163,8 +163,8 @@ real_label = 1
 fake_label = 0
 
 # setup optimizer
-optimizerD = optim.Adam(netD.parameters(), lr=0.0001, betas=(0.5, 0.999))
-optimizerG = optim.Adam(netG.parameters(), lr=0.0005, betas=(0.9, 0.999))
+optimizerD = optim.Adam(netD.parameters(), lr=0.00001, betas=(opt.beta1, 0.999))
+optimizerG = optim.Adam(netG.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
 
 
 writer = SummaryWriter()
