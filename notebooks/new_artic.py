@@ -24,10 +24,10 @@ from torch.utils.tensorboard import SummaryWriter
 from skimage.transform import downscale_local_mean
 from scipy.ndimage import zoom
 
-psf = pyfits.getdata('psf_gsd_f814w_full_60mas.fits')
+psf = pyfits.getdata('../psfs/psf_gsd_f814w_full_60mas.fits')
 psf = downscale_local_mean(psf,(3,3))
 psf = psf[7:-8,7:-8]#[22:-22,22:-22]
-psf_hsc = pyfits.getdata('PSF_subaru_i.fits')
+psf_hsc = pyfits.getdata('../psfs/PSF_subaru_i.fits')
 psf_hsc = psf_hsc[1:42,1:42]
 kern = create_matching_kernel(psf,psf_hsc)
 psfh = np.repeat(kern[:,:, np.newaxis], 1, axis=2)
@@ -35,12 +35,12 @@ psfh = np.repeat(psfh[:,:,:,np.newaxis],1,axis = 3)
 kernel = torch.Tensor(psfh)
 kernel = kernel.permute(2,3,0,1)
 kernel =  kernel.float()
-kernel = kernel.cuda()
+#kernel = kernel.cuda()
 
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', help='cifar10 | lsun | mnist |imagenet | folder | lfw | fake')
-parser.add_argument('--dataroot', default='gals_optim/', help='path to dataset')
+parser.add_argument('--dataroot', default='gals_blend/', help='path to dataset')
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=4)
 parser.add_argument('--batchSize', type=int, default=64, help='input batch size')
 parser.add_argument('--imageSize', type=int, default=64, help='the height / width of the input image to network')
