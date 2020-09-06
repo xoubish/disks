@@ -24,10 +24,10 @@ from torch.utils.tensorboard import SummaryWriter
 from skimage.transform import downscale_local_mean
 from scipy.ndimage import zoom
 
-psf = pyfits.getdata('../../psfs/psf_i.fits')
+psf = pyfits.getdata('../psfs/psf_i.fits')
 psf = downscale_local_mean(psf,(3,3))
 psf = psf[7:-8,7:-8]#[22:-22,22:-22]
-psf_hsc = pyfits.getdata('../../psfs/PSF_subaru_i.fits')
+psf_hsc = pyfits.getdata('../psfs/PSF_subaru_i.fits')
 psf_hsc = psf_hsc[1:42,1:42]
 kern = create_matching_kernel(psf,psf_hsc)
 psfh = np.repeat(kern[:,:, np.newaxis], 1, axis=2)
