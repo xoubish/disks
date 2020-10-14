@@ -1,5 +1,8 @@
 #ignore large files
 Sample.hdf5
+multichannel/Sample.hdf5
+multichannel/Sample_train.hdf5
+multichannel/Sample_test.hdf5
 .ipynb_checkpoints
 **/.DS_Store
 `

@@ -33,11 +33,11 @@ lo_psfs = ['PSF_subaru_i.fits','PSF_subaru_i.fits','PSF_subaru_i.fits','PSF_suba
 
 kernel = np.zeros((1,nc,20,20))
 for i in range(len(hi_psfs)):
-    psf = pyfits.getdata('psfs/'+hi_psfs[i])
+    psf = pyfits.getdata('../psfs/'+hi_psfs[i])
     psf = downscale_local_mean(psf,(3,3))
     psf = psf[8:-8,8:-8]#[22:-22,22:-22]
 
-    psf_hsc = pyfits.getdata('psfs/'+lo_psfs[i])
+    psf_hsc = pyfits.getdata('../psfs/'+lo_psfs[i])
     psf_hsc = psf_hsc[2:42,2:42]
     a = create_matching_kernel(psf,psf_hsc)
     kernel[0,i,:,:] = a[10:-10,10:-10]
@@ -86,7 +86,7 @@ if torch.cuda.is_available() and not opt.cuda:
 
 
 
-dataset = galaxydata('Sample.hdf5')
+dataset = galaxydata('Sample_train.hdf5')
 assert dataset
 dataloader = torch.utils.data.DataLoader(dataset, batch_size=opt.batchSize,shuffle=True, num_workers=int(opt.workers))
 
