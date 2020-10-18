@@ -3,6 +3,7 @@ Sample.hdf5
 multichannel/Sample.hdf5
 multichannel/Sample_train.hdf5
 multichannel/Sample_test.hdf5
+Blending/images/*.fits
 .ipynb_checkpoints
 **/.DS_Store
 `

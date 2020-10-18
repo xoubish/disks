@@ -6,6 +6,8 @@ import mof
 import os
 import scipy.optimize
 import ipdb
+import priors as pedar
+import moflib
 
 def get_image(objid,image_path='./images',bkgd_sub = True):
     filename = f"low_res_{objid}.fits"
@@ -88,7 +90,7 @@ def get_priors_double(entry):
     
     # now make a joint prior.  This one takes priors
     # for each parameter separately
-    priors = mof.priors.PriorBDFSepMulti(
+    priors = pedar.PriorBDFSepMulti(
         [cen_prior1,cen_prior2],
         g_prior,
         T_prior,
@@ -134,7 +136,7 @@ def get_priors_single(entry):
     
     # now make a joint prior.  This one takes priors
     # for each parameter separately
-    priors = mof.priors.PriorBDFSepMulti(
+    priors = pedar.PriorBDFSepMulti(
         [cen_prior],
         g_prior,
         T_prior,
@@ -150,17 +152,17 @@ def fit_mof(entry,obs,max_tries = 5, max_chi2 = 25):
     n_tries = 0
     while (n_tries <= max_tries) & (not acceptable_fit):
         guess = prior.sample()
-        fitter = mof.moflib.MOF(obs,model='bdf',nobj=2,prior=prior)
+        fitter = moflib.MOF(obs,model='bdf',nobj=2,prior=prior)
         fitter.go(guess=guess)
         # Did it work?
         result = fitter.get_result()
         if 'chi2per' in result.keys():
             pars = fitter.get_result()['pars']
             chi2 = result['chi2per']
-            print(f"{chi2}")
+            #print(f"{chi2}")
             if chi2 < max_chi2:
                 acceptable_fit = True
-                print ("good enough")
+                #print ("good enough")
             else:
                 n_tries = n_tries+1
         else:
@@ -171,21 +173,21 @@ def fit_mof(entry,obs,max_tries = 5, max_chi2 = 25):
     params2 = parameter_array(result['pars'][npars_per_object:])
     params2['chisq'] = chi2
             
-    image = fitter.make_image()
-    fig,(ax1,ax2,ax3) = plt.subplots(nrows=1,ncols=3,figsize=(21,7))
-    ax1.imshow(obs.image,origin='lower')
-    ax1.plot(entry['y1']-0.3333,entry['x1']-0.3333,'r+')
-    ax1.plot(entry['y2']-0.3333,entry['x2']-0.3333,'r+')    
-    ax2.imshow(image,origin='lower')    
-    ax2.plot(entry['y1']-0.3333,entry['x1']-0.3333,'r+')
-    ax2.plot(entry['y2']-0.3333,entry['x2']-0.3333,'r+')    
-    ax3.imshow(obs.image-image,origin='lower')
-    ax3.plot(entry['y1']-0.3333,entry['x1']-0.3333,'r+')
-    ax3.plot(entry['y2']-0.3333,entry['x2']-0.3333,'r+')
-    chi2per = result['chi2per']
-    fig.suptitle(f"chi2per: {result['chi2per']:.08}")
-    fig.savefig(f"fit_hires-{entry['id']}.png")
-    plt.close(fig)
+    #image = fitter.make_image()
+    #fig,(ax1,ax2,ax3) = plt.subplots(nrows=1,ncols=3,figsize=(21,7))
+    #ax1.imshow(obs.image,origin='lower')
+    #ax1.plot(entry['y1']-0.3333,entry['x1']-0.3333,'r+')
+    #ax1.plot(entry['y2']-0.3333,entry['x2']-0.3333,'r+')    
+    #ax2.imshow(image,origin='lower')    
+    #ax2.plot(entry['y1']-0.3333,entry['x1']-0.3333,'r+')
+    #ax2.plot(entry['y2']-0.3333,entry['x2']-0.3333,'r+')    
+    #ax3.imshow(obs.image-image,origin='lower')
+    #ax3.plot(entry['y1']-0.3333,entry['x1']-0.3333,'r+')
+    #ax3.plot(entry['y2']-0.3333,entry['x2']-0.3333,'r+')
+    #chi2per = result['chi2per']
+    #fig.suptitle(f"chi2per: {result['chi2per']:.08}")
+    #fig.savefig(f"fit_hires-{entry['id']}.png")
+    #plt.close(fig)
     return params1,params2
 
 
@@ -196,17 +198,17 @@ def fit_single(entry,obs,max_tries = 5, max_chi2 = 25):
     n_tries = 0
     while (n_tries <= max_tries) & (not acceptable_fit):
         guess = prior.sample()
-        fitter = mof.moflib.MOF(obs,model='bdf',nobj=1,prior=prior)
+        fitter = moflib.MOF(obs,model='bdf',nobj=1,prior=prior)
         fitter.go(guess=guess)
         # Did it work?
         result = fitter.get_result()
         pars = fitter.get_result()['pars']
         if 'chi2per' in result.keys():
             chi2 = result['chi2per']
-            print(f"{chi2}")
+            #print(f"{chi2}")
             if chi2 < max_chi2:
                 acceptable_fit = True
-                print ("good enough")
+                #print ("good enough")
             else:
                 n_tries = n_tries+1
         else:
@@ -214,26 +216,26 @@ def fit_single(entry,obs,max_tries = 5, max_chi2 = 25):
     params = parameter_array(result['pars'][:npars_per_object])
     params['chisq'] = chi2
     image = fitter.make_image()
-    fig,(ax1,ax2,ax3) = plt.subplots(nrows=1,ncols=3,figsize=(21,7))
-    ax1.imshow(obs.image,origin='lower')
-    ax1.plot(entry['y1']-0.3333,entry['x1']-0.3333,'r+')
-    ax1.plot(entry['y2']-0.3333,entry['x2']-0.3333,'r+')
-    ax1.plot(entry['y_lowres']-0.3333,entry['x_lowres']-0.3333,'o')    
+    #fig,(ax1,ax2,ax3) = plt.subplots(nrows=1,ncols=3,figsize=(21,7))
+    #ax1.imshow(obs.image,origin='lower')
+    #ax1.plot(entry['y1']-0.3333,entry['x1']-0.3333,'r+')
+    #ax1.plot(entry['y2']-0.3333,entry['x2']-0.3333,'r+')
+    #ax1.plot(entry['y_lowres']-0.3333,entry['x_lowres']-0.3333,'o')    
     
-    ax2.imshow(image,origin='lower')    
-    ax2.plot(entry['y1']-0.3333,entry['x1']-0.3333,'r+')
-    ax2.plot(entry['y2']-0.3333,entry['x2']-0.3333,'r+')    
-    ax2.plot(entry['y_lowres']-0.3333,entry['x_lowres']-0.3333,'o')    
+    #ax2.imshow(image,origin='lower')    
+    #ax2.plot(entry['y1']-0.3333,entry['x1']-0.3333,'r+')
+    #ax2.plot(entry['y2']-0.3333,entry['x2']-0.3333,'r+')    
+    #ax2.plot(entry['y_lowres']-0.3333,entry['x_lowres']-0.3333,'o')    
 
-    ax3.imshow(obs.image-image,origin='lower')
-    ax3.plot(entry['y1']-0.3333,entry['x1']-0.3333,'r+')
-    ax3.plot(entry['y2']-0.3333,entry['x2']-0.3333,'r+')
-    ax3.plot(entry['y_lowres']-0.3333,entry['x_lowres']-0.3333,'o')    
+    #ax3.imshow(obs.image-image,origin='lower')
+    #ax3.plot(entry['y1']-0.3333,entry['x1']-0.3333,'r+')
+    #ax3.plot(entry['y2']-0.3333,entry['x2']-0.3333,'r+')
+    #ax3.plot(entry['y_lowres']-0.3333,entry['x_lowres']-0.3333,'o')    
     
-    chi2per = result['chi2per']
-    fig.suptitle(f"chi2per: {result['chi2per']:.08}")
-    fig.savefig(f"fit_lowres-{entry['id']}.png")
-    plt.close(fig)
+   # chi2per = result['chi2per']
+    #fig.suptitle(f"chi2per: {result['chi2per']:.08}")
+    #fig.savefig(f"fit_lowres-{entry['id']}.png")
+    #plt.close(fig)
     return params
     
 def parameter_array(pars):
@@ -245,68 +247,6 @@ def parameter_array(pars):
     array['fracDev'] = pars[5]
     array['flux'] = pars[6]
     return array
-
-'''
-def fit_ngmix_simple(entry,obs,n_guess = 20):
-    prior = get_priors(entry)
-    guess = prior.sample()
-    npars_per_object = 7
-    model_type = 'bdf'
-    method = "Nelder-Mead"
-
-    def eval_model(pars):
-        pars_gm1 = pars[:npars_per_object]
-        gm1 = ngmix.gmix.GMixBDF(pars_gm1).convolve(obs.psf.get_gmix())
-        pars_gm2 = pars[npars_per_object:]
-        gm2 = ngmix.gmix.GMixBDF(pars_gm2).convolve(obs.psf.get_gmix())
-        im1 = gm1.make_image(obs.image.shape,obs.jacobian)
-        im2 = gm2.make_image(obs.image.shape,obs.jacobian)
-        model = im1+im2
-        return model
-        
-    
-    def chisq(pars):
-        try:
-            model = eval_model(pars)
-            chisq = np.sum((obs.image - model)**2*obs.weight)
-            penalty = -2*prior.get_lnprob_scalar(pars)
-            return chisq + penalty
-        except:
-            return np.inf
-
-
-    chisq_guess = np.zeros(n_guess)
-    guesses = np.zeros((n_guess,guess.size))
-    for i in range(n_guess):
-        guesses[:,i] = prior.sample()
-        chisq_guess[i] = chi(guesses[:,i],chisq=True)
-    best_guess = guesses[:,np.argmin(chisq_guess)] 
-    result = scipy.optimize.minimize(chisq,guess,method=method)
-    model = eval_model(result.x)
-    pars1 = parameter_array(result.x[:npars_per_object])
-    pars2 = parameter_array(result.x[npars_per_object:])
-    print(pars1)
-    print(pars2)
-   
-
-    
-    fig,(ax1,ax2,ax3) = plt.subplots(nrows=1,ncols=3,figsize=(21,7))
-    vmin,vmax = -1,50
-    cmap = plt.cm.inferno
-    ax1.imshow(obs.image,origin='lower',cmap=cmap,vmin=vmin,vmax=vmax)
-    ax1.plot(entry['x1'],entry['y1'],'r+')
-    ax1.plot(entry['x2'],entry['y2'],'r+')    
-    ax2.imshow(model,origin='lower',vmin=vmin,vmax=vmax,cmap=cmap)
-    ax2.plot(entry['x1'],entry['y1'],'r+')
-    ax2.plot(entry['x2'],entry['y2'],'r+')    
-    ax3.imshow(obs.image-model,origin='lower',vmin=vmin,vmax=vmax,cmap=cmap)
-    ax3.plot(entry['x1'],entry['y1'],'r+')
-    ax3.plot(entry['x2'],entry['y2'],'r+')    
-    
-    plt.show()
-    ipdb.set_trace()
-'''    
-    
     
 def get_coordinates(cfile='Coordinates_gan.txt',lowres=False):
     dtype = [('id',np.int),('x1',np.float),('x2',np.float),('y1',np.float),('y2',np.float),('flux1',np.float),('flux2',np.float),('x_lowres',np.int),('y_lowres',np.int)]
@@ -330,7 +270,8 @@ if __name__ == '__main__':
     flux_raw = np.zeros(coords.size)
     
     for i,entry in enumerate(coords):
-        print(f"{i+1} of {coords.size+1}")
+        if i%100 ==0 :
+            print(f"{i+1} of {coords.size+1}")
         obs = make_observation(entry['id'])
         flux_raw[i] = np.sum(obs.image)/flux_calib
         #fit_ngmix_simple(entry,obs)
@@ -364,4 +305,4 @@ if __name__ == '__main__':
     ax2.set_xscale('log')
     ax2.set_yscale('log')
     plt.savefig('flux_comparison.png')
-    ipdb.set_trace()
+    #ipdb.set_trace()
