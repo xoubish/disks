@@ -305,4 +305,21 @@ if __name__ == '__main__':
     ax2.set_xscale('log')
     ax2.set_yscale('log')
     plt.savefig('flux_comparison.png')
+    
+    f = open('photometry_blend1.txt','w+')
+    for i in range(len(flux1)):
+        f.write(str(flux1[i])+'\t'+str(coords['flux1'][i])+'\n')
+    f.close()
+    
+    f = open('photometry_blend2.txt','w+')
+    for i in range(len(flux2)):
+        f.write(str(flux2[i])+'\t'+str(coords['flux2'][i])+'\n')
+    f.close()
+    
+    f = open('photometry_lowres.txt','w+')
+    for i in range(len(flux_ref_lores)):
+        f.write(str(flux_lores[i])+'\t'+str(flux_ref_lores[i])+'\n')
+    f.close()
+    
+        
     #ipdb.set_trace()
