@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import ipdb
 
 
-min_calib_error = 0.01
+min_calib_error = 0.1
 data = np.load('fitting_results.npz')
 keep = (data['flux1'] > 0) & (data['chi2_hires'] < 2.)
 keepL = (data['flux_ref_lores']>0) & (data['chi2_lowres'] < 2.)
