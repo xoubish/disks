@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import ipdb
 
 
-min_calib_error = 0.1
+min_calib_error = 0.01
 data = np.load('fitting_results.npz')
 keep = (data['flux1'] > 0) & (data['chi2_hires'] < 2.)
 keepL = (data['flux_ref_lores']>0) & (data['chi2_lowres'] < 2.)
@@ -27,7 +27,7 @@ YL = data['flux1'][keepL]+data['flux2'][keepL]#data['flux_lores'][keepL]
 dy = np.hstack([sigma_meas1,sigma_meas2])
 dyL = sigma_meas_lores
 
-kernel =   C(10.0, (1e-3, 1e3)) * RBF(10000, (1e1, 1e7))
+kernel =   C(0.0, (1e-3, 1e3)) * RBF(10000, (1e2, 1e7))
 gp = GaussianProcessRegressor(kernel=kernel, alpha= dy ** 2,n_restarts_optimizer=10)
 gpL = GaussianProcessRegressor(kernel=kernel, alpha= dyL ** 2,n_restarts_optimizer=10)
 gp.fit(X,Y)
@@ -53,7 +53,7 @@ ax1.set_yscale('symlog')
 ax1.set_xlim(0.1,100)
 ax1.set_ylabel('fractional error')
 ax1.set_xlabel('input flux')
-ax1.set_ylim(-50,50)
+#ax1.set_ylim(-100,50)
 
 ax2.errorbar(XL.ravel(),YL/XL.ravel(),dyL/XL.ravel(),elinewidth=0.2,markersize=0.5,fmt='.',zorder=2)
 ax2.plot(XL.ravel(),YL/XL.ravel(),'.',markersize=0.5,color='red',zorder=3)
@@ -66,7 +66,7 @@ ax2.semilogx()
 ax2.set_yscale('symlog')
 ax2.set_ylabel('fractional error')
 ax2.set_xlabel('input flux')
-ax2.set_ylim(-50,50)
+#ax2.set_ylim(-100,100)
 ax2.set_xlim(0.1,100)
 
 fig.savefig('flux-difference-gp-diagnostics.png')
