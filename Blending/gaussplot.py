@@ -5,16 +5,16 @@ import matplotlib.pyplot as plt
 import ipdb
 
 
-min_calib_error = 0.01
-irred_add_error = 0.1
+min_calib_error = 0.05
+sys_add_error = 1.
 data = np.load('fitting_results.npz')
 keep = (data['flux1'] > 0) & (data['chi2_hires'] < 2.)
 keepL = (data['flux_ref_lores']>0) & (data['chi2_lowres'] < 2.)
 
 truth = data['truth'][keep]
 
-sigma_calib1 = np.sqrt(min_calib_error*np.abs(data['flux1'][keep])**2 + irred_add_error**2)
-sigma_calib2 = np.sqrt(min_calib_error*np.abs(data['flux2'][keep])**q + irred_add_error**2)
+sigma_calib1 = np.sqrt(min_calib_error*np.abs(data['flux1'][keep])**2 + sys_add_error**2)
+sigma_calib2 = np.sqrt(min_calib_error*np.abs(data['flux2'][keep])**2 + sys_add_error**2)
 sigma_calib_lores =  min_calib_error*np.abs(data['flux_lores'][keepL] )                              
 
 sigma_meas1 = np.sqrt(data['flux1_err'][keep]**2 + sigma_calib1**2)
@@ -24,11 +24,11 @@ sigma_meas_lores = np.sqrt(data['flux_lores_err'][keepL]**2 + sigma_calib_lores*
 X  =  np.atleast_2d(np.hstack([truth['flux1'],truth['flux2']])).T
 XL =  np.atleast_2d(data['flux_ref_lores'][keepL]).T
 Y  = np.hstack([data['flux1'][keep] - truth['flux1'],data['flux2'][keep] - truth['flux2']])
-YL = data['flux1'][keepL]+data['flux2'][keepL]#data['flux_lores'][keepL]
+YL = data['flux_lores'][keepL]#data['flux1'][keepL]+data['flux2'][keepL]
 dy = np.hstack([sigma_meas1,sigma_meas2])
 dyL = sigma_meas_lores
 
-kernel =   C(0.0, (1e-3, 1e3)) * RBF(10000, (1e2, 1e7))
+kernel =   C(10.0, (1e-4, 1e4)) * RBF(10000, (1e2, 1e7))
 gp = GaussianProcessRegressor(kernel=kernel, alpha= dy ** 2,n_restarts_optimizer=10)
 gpL = GaussianProcessRegressor(kernel=kernel, alpha= dyL ** 2,n_restarts_optimizer=10)
 gp.fit(X,Y)
@@ -38,6 +38,8 @@ Yinterp,Yinterp_err = gp.predict(Xinterp,return_std=True)
 gpL.fit(XL,YL)
 YLinterp,YLinterp_err = gpL.predict(Xinterp,return_std=True)
 
+errscl = np.sqrt(X.size)
+errsclL = np.sqrt(XL.size)
 
 # Now plot:
 # -- the data, with errors
@@ -48,6 +50,7 @@ ax1.fill_between(Xinterp.ravel(),np.zeros(Xinterp.size)+0.1,np.zeros(Xinterp.siz
 # -- the model fit
 #plt.plot(Xinterp.ravel(),Yinterp+Xinterp.ravel())
 ax1.fill_between(Xinterp.ravel(),(Yinterp-Yinterp_err)/Xinterp.ravel(),(Yinterp+Yinterp_err)/Xinterp.ravel(),color='orange')
+ax1.fill_between(Xinterp.ravel(),(Yinterp-Yinterp_err*errscl)/Xinterp.ravel(),(Yinterp+Yinterp_err*errscl)/Xinterp.ravel(),color='orange',alpha=0.25)
 ax1.axhline(0,color='black',alpha=0.5,linestyle='--')
 ax1.semilogx()
 ax1.set_yscale('symlog')
@@ -61,6 +64,7 @@ ax2.plot(XL.ravel(),YL/XL.ravel(),'.',markersize=0.5,color='red',zorder=3)
 # -- the model fit
 #plt.plot(Xinterp.ravel(),Yinterp+Xinterp.ravel())
 ax2.fill_between(Xinterp.ravel(),(YLinterp-YLinterp_err)/Xinterp.ravel(),(YLinterp+YLinterp_err)/Xinterp.ravel(),color='orange')
+ax2.fill_between(Xinterp.ravel(),(YLinterp-errsclL*YLinterp_err)/Xinterp.ravel(),(YLinterp+errsclL*YLinterp_err)/Xinterp.ravel(),color='orange',alpha=0.25)
 ax2.fill_between(Xinterp.ravel(),np.zeros(Xinterp.size)+0.1,np.zeros(Xinterp.size)-0.1,color='grey',alpha=0.33,zorder=1)
 ax2.axhline(0,color='grey',alpha=0.5,linestyle='--')
 ax2.semilogx()
