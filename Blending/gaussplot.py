@@ -6,14 +6,15 @@ import ipdb
 
 
 min_calib_error = 0.01
+irred_add_error = 0.1
 data = np.load('fitting_results.npz')
 keep = (data['flux1'] > 0) & (data['chi2_hires'] < 2.)
 keepL = (data['flux_ref_lores']>0) & (data['chi2_lowres'] < 2.)
 
 truth = data['truth'][keep]
 
-sigma_calib1 = min_calib_error*np.abs(data['flux1'][keep])
-sigma_calib2 = min_calib_error*np.abs(data['flux2'][keep] )                              
+sigma_calib1 = np.sqrt(min_calib_error*np.abs(data['flux1'][keep])**2 + irred_add_error**2)
+sigma_calib2 = np.sqrt(min_calib_error*np.abs(data['flux2'][keep])**q + irred_add_error**2)
 sigma_calib_lores =  min_calib_error*np.abs(data['flux_lores'][keepL] )                              
 
 sigma_meas1 = np.sqrt(data['flux1_err'][keep]**2 + sigma_calib1**2)
