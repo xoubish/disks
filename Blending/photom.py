@@ -170,7 +170,9 @@ def fit_mof(entry,obs,max_tries = 5, max_chi2 = 25):
 
     params1 = parameter_array(result['pars'][:npars_per_object])
     params1['chisq'] = chi2
+    errs1 = parameter_array(result['pars_err'][:npars_per_object])
     params2 = parameter_array(result['pars'][npars_per_object:])
+    errs2 = parameter_array(result['pars_err'][npars_per_object:])    
     params2['chisq'] = chi2
             
     #image = fitter.make_image()
@@ -188,7 +190,7 @@ def fit_mof(entry,obs,max_tries = 5, max_chi2 = 25):
     #fig.suptitle(f"chi2per: {result['chi2per']:.08}")
     #fig.savefig(f"fit_hires-{entry['id']}.png")
     #plt.close(fig)
-    return params1,params2
+    return params1,errs1,params2,errs2
 
 
 def fit_single(entry,obs,max_tries = 5, max_chi2 = 25):
@@ -214,6 +216,7 @@ def fit_single(entry,obs,max_tries = 5, max_chi2 = 25):
         else:
             n_tries = n_tries+1
     params = parameter_array(result['pars'][:npars_per_object])
+    errs = parameter_array(result['pars_err'][:npars_per_object])    
     params['chisq'] = chi2
     image = fitter.make_image()
     #fig,(ax1,ax2,ax3) = plt.subplots(nrows=1,ncols=3,figsize=(21,7))
@@ -236,7 +239,7 @@ def fit_single(entry,obs,max_tries = 5, max_chi2 = 25):
     #fig.suptitle(f"chi2per: {result['chi2per']:.08}")
     #fig.savefig(f"fit_lowres-{entry['id']}.png")
     #plt.close(fig)
-    return params
+    return params,errs
     
 def parameter_array(pars):
     array = {}
@@ -264,23 +267,34 @@ if __name__ == '__main__':
     coords = get_coordinates(lowres=True)
     flux_calib =  5.07224239892
     flux1 = np.zeros(coords.size)
+    flux1_err = np.zeros(coords.size)
     flux2 = np.zeros(coords.size)
+    flux2_err = np.zeros(coords.size)
     flux_lores = np.zeros(coords.size)
+    flux_lores_err = np.zeros(coords.size)
     flux_ref_lores = np.zeros(coords.size)
     flux_raw = np.zeros(coords.size)
-    
+    chi2_lowres = np.zeros(coords.size)
+    chi2_hires = np.zeros(coords.size)
     for i,entry in enumerate(coords):
         if i%100 ==0 :
             print(f"{i+1} of {coords.size+1}")
-        obs = make_observation(entry['id'])
+        try:
+            obs = make_observation(entry['id'])
+        except:
+            continue
         flux_raw[i] = np.sum(obs.image)/flux_calib
         #fit_ngmix_simple(entry,obs)
-        pars1,pars2 = fit_mof(entry,obs,max_tries=10)
-        pars_lores = fit_single(entry,obs,max_tries=10)
-
+        pars1,errs1,pars2,errs2 = fit_mof(entry,obs,max_tries=10)
+        pars_lores,errs_lores = fit_single(entry,obs,max_tries=10)
+        chi2_hires[i] = pars1['chisq']
+        chi2_lowres[i] = pars_lores['chisq']
         flux1[i] = pars1['flux']/flux_calib
+        flux1_err[i] = errs1['flux']/flux_calib
         flux2[i] = pars2['flux']/flux_calib
+        flux2_err[i] = errs2['flux']/flux_calib
         flux_lores[i] = pars_lores['flux']/flux_calib
+        flux_lores_err[i] = errs_lores['flux']/flux_calib
         # Determine which source this is closer to.
         dist1 = np.sqrt( (pars1['xcen'] - coords['x1'][i])**2 + (pars1['ycen'] - coords['y1'][i])**2)
         dist2 = np.sqrt( (pars1['xcen'] - coords['x2'][i])**2 + (pars1['ycen'] - coords['y2'][i])**2)
@@ -289,22 +303,41 @@ if __name__ == '__main__':
         else:
             flux_ref_lores[i] = coords['flux2'][i]
 
-        
+
+    chi2_thresh = 2.
+    good_chi2 = chi2_hires <= chi2_thresh
+    bad_chi2 = chi2_hires >  chi2_thresh
+
+    good_chi2_lo = chi2_lowres <= chi2_thresh
+    bad_chi2_lo = chi2_lowres >  chi2_thresh
+    
+    
     fig,(ax1,ax2) = plt.subplots(nrows=1,ncols=2,figsize=(14,7))
-    ax1.plot(coords['flux1'],flux1,'.',label = 'flux 2')
-    ax1.plot(coords['flux2'],flux2,'.',label='flux 1')
+    ax1.errorbar(coords['flux1'][good_chi2],flux1[good_chi2],yerr=flux1_err[good_chi2],fmt=',',label = 'flux 2',color='blue',)
+    ax1.errorbar(coords['flux2'][good_chi2],flux2[good_chi2],flux2_err[good_chi2],fmt=',',label='flux 1',color='blue')
+    ax1.errorbar(coords['flux1'][bad_chi2],flux1[bad_chi2],flux1_err[bad_chi2],fmt=',',label = 'flux 2',color='red')
+    ax1.errorbar(coords['flux2'][bad_chi2],flux2[bad_chi2],flux2_err[bad_chi2],fmt=',',label='flux 1',color='red')
+
     ax1.plot(coords['flux2'],coords['flux2'],'--',color='red',alpha=0.5)
     ax1.set_xlabel('input flux')
     ax1.set_ylabel('ngmix-mof deblended flux')
     ax1.set_xscale('log')
     ax1.set_yscale('log')
-    ax2.plot(flux_ref_lores,flux_lores,'.')
+    ax2.errorbar(flux_ref_lores[good_chi2_lo],flux_lores[good_chi2_lo],yerr=flux_lores_err[good_chi2_lo],fmt=',',color='blue')
+    ax2.errorbar(flux_ref_lores[bad_chi2_lo],flux_lores[bad_chi2_lo],yerr=flux_lores_err[bad_chi2_lo],fmt=',',color='red')    
     ax2.plot(flux_ref_lores,flux_ref_lores,'--',color='red',alpha=0.5)
     ax2.set_xlabel('input flux')
     ax2.set_ylabel('ngmix-mof deblended flux')
     ax2.set_xscale('log')
     ax2.set_yscale('log')
     plt.savefig('flux_comparison.png')
+    
+    np.savez('fitting_results.npz',truth=coords,flux1=flux1,flux1_err=flux1_err,flux2=flux2,flux2_err=flux2_err,\
+             flux_lores=flux_lores,flux_lores_err=flux_lores_err,flux_ref_lores=flux_ref_lores,
+             chi2_hires = chi2_hires,chi2_lowres=chi2_lowres)
+    ipdb.set_trace()
+    
+
     
     f = open('photometry_blend1.txt','w+')
     for i in range(len(flux1)):
