@@ -56,6 +56,8 @@ torch.manual_seed(manualSeed)
 nc = 1
 goodsfits = './data/goodss_all_acs_wfc_f775w_060mas_v1.5_drz.fits'
 goodscat = './data/gds.fits'
+#goodsfits = '/Users/shemmati/Desktop/GOODS/goodss_all_acs_wfc_f775w_060mas_v1.5_drz.fits'
+#goodscat='/Users/shemmati/Dropbox/WFIRST_WPS/CANDELS_fits/gds.fits'
 psfhigh='../psfs/psf_i.fits'
 psflow='../psfs/PSF_subaru_i.fits'
 
@@ -247,7 +249,7 @@ def galblend2(gals=1, lim_hmag=24, plot_it=True,goodscat=goodscat,goodsfits=good
     y2[0],x2[0] = np.unravel_index(da1.argmax(), da1.shape)
     im += da1
     
-    da2 = np.zeros([gals,64,64])
+    da2 = np.zeros([gals-1,64,64])
     
     for boz in range(gals-1):
         data2 = np.zeros([140,140])
@@ -348,4 +350,4 @@ def galblend2(gals=1, lim_hmag=24, plot_it=True,goodscat=goodscat,goodsfits=good
         plt.tight_layout()
         plt.show()
         
-    return im,lowres,fd[0,0,:,:],[x2,y2,z2,flux2,s2,[[x_esh,y_esh],[x_esh_low,y_esh_low],[x_esh_fd,y_esh_fd]]]
+    return im,da1,da2[0,:,:],lowres,fd[0,0,:,:],[x2,y2,z2,flux2,s2,[[x_esh,y_esh],[x_esh_low,y_esh_low],[x_esh_fd,y_esh_fd]]]
