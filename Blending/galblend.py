@@ -54,8 +54,10 @@ netG = ''
 manualSeed = random.randint(1, 10000)
 torch.manual_seed(manualSeed)
 nc = 1
-goodsfits = './data/goodss_all_acs_wfc_f775w_060mas_v1.5_drz.fits'
-goodscat = './data/gds.fits'
+#goodsfits = './data/goodss_all_acs_wfc_f775w_060mas_v1.5_drz.fits'
+#goodscat = './data/gds.fits'
+goodsfits = '/Users/shemmati/Desktop/GOODS/goodss_all_acs_wfc_f775w_060mas_v1.5_drz.fits'
+goodscat='/Users/shemmati/Dropbox/WFIRST_WPS/CANDELS_fits/gds.fits'
 psfhigh='../psfs/psf_i.fits'
 psflow='../psfs/PSF_subaru_i.fits'
 
@@ -119,7 +121,8 @@ def brightest_center(im, r = 20):
     
     return ans
 
-def go_lowres(galax,out_size=21, noise_sigma=2,psfhigh=psfhigh,psflow=psflow):
+import scipy
+def go_lowres(galax,out_size=21, noise_sigma=0.05,psfhigh=psfhigh,psflow=psflow):
     '''This function is to take high resolution galaxy cutout and go to 
     a lower pixelscale, resolution and more noise'''
     
@@ -129,11 +132,14 @@ def go_lowres(galax,out_size=21, noise_sigma=2,psfhigh=psfhigh,psflow=psflow):
     psf_hsc = pyfits.getdata(psflow)
     psf_hsc = psf_hsc[1:42,1:42]
     kern = create_matching_kernel(psf,psf_hsc)
-    im = galax+np.random.normal(0,noise_sigma,galax.shape)
-    img = convolve(im,kern)
-    outp = np.array(Image.fromarray(img).resize((out_size,out_size)))
 
-    return outp
+    img = convolve(galax,kern)
+
+    outp = np.array(Image.fromarray(img).resize((out_size,out_size)))
+    outp = outp*9.0
+
+    im = outp+np.random.normal(0,noise_sigma,outp.shape)    
+    return im
 
 
 def go_lowres_tens(galax,psfhigh=psfhigh,psflow=psflow):
@@ -243,15 +249,13 @@ def galblend(gals=1, lim_hmag=24, plot_it=True,goodscat=goodscat,goodsfits=goods
     y2[0],x2[0] = np.unravel_index(da1.argmax(), da1.shape)
     im += da1
     
-    da2 = np.zeros([gals,64,64])
+    da2 = np.zeros([gals-1,64,64])
     
     for boz in range(gals-1):
-        #data2 = np.zeros([100,100])
         data2 = np.zeros([140,140])
         
         while not(brightest_center(data2)):
             n = np.int(np.random.uniform(0,len(ra)-1))
-            #data2 = cut(ra[n],dec[n],50,goodsfits)
             data2 = cut(ra[n],dec[n],70,goodsfits)
             
             z2[boz+1],flux2[boz+1],s2[boz+1] = red[n],iflux[n],fwhm[n]
@@ -274,40 +278,27 @@ def galblend(gals=1, lim_hmag=24, plot_it=True,goodscat=goodscat,goodsfits=goods
      #### Detect sources on high res blend sample
     
     psf = pyfits.getdata(psfhigh)
+    #num = find_peaks(image=im, kernel = psf,thresh=3*np.mean(im))
     num = find_peaks(image=rescaled-np.mean(rescaled), kernel = psf,thresh=np.mean(rescaled))
     x_esh,y_esh = [],[]
     for boz in range(len(num)):
         if (1<num[boz][0]<64)&(1<num[boz][1]<64):
             x_esh.append(num[boz][0])
             y_esh.append(num[boz][1])
-    
-    #blobs_log = blob_log(rescaled-np.mean(rescaled), min_sigma=0.1, max_sigma=5, num_sigma=20, threshold=np.mean(rescaled), overlap=0.75, log_scale=True, exclude_border=False)
-    #blobs_log[:, 2] = blobs_log[:, 2] * np.sqrt(2) # Compute radii in the 3rd column.
-    #x_esh,y_esh = [],[]
-    #for blob in blobs_log:
-    #    x, y, r = blob
-    #    if ((r>1)&(10<x<50)&(10<y<50)):
-    #        y_esh.append(y)
-    #        x_esh.append(x)
       
     ### Reduce resolution and pixel scale to Subaru and add some noise
-    lowres = go_lowres(rescaled)
-    
+    lowres = go_lowres(im)
+    dadalow = np.arcsinh(lowres)
+    rescaledlow = (255.0 / (dadalow.max()+1) * (dadalow - dadalow.min())).astype(np.uint8)
+
     psflo = pyfits.getdata(psflow)
-    num = find_peaks(image=lowres, kernel = psflo,thresh=np.mean(lowres)/5.0)
+    num = find_peaks(image=lowres, kernel = psflo,thresh=3*np.mean(lowres))
     x_esh_low,y_esh_low = [],[]
     for boz in range(len(num)):
         if (1<num[boz][0]<21)&(1<num[boz][1]<21):
             x_esh_low.append(num[boz][0])
             y_esh_low.append(num[boz][1])
-    ### Detect sources on Lowres
-    #blobs_log = blob_log(lowres-np.mean(lowres), min_sigma= 0.1, max_sigma=5, num_sigma=2, threshold=30, overlap=0.75, log_scale=True, exclude_border=False)    
-    #x_esh_low,y_esh_low = [],[]
-    #for blob in blobs_log:
-    #    x, y, r = blob
-    #    if ((r>0.)&(4<x<16)&(4<y<16)):
-    #        y_esh_low.append(y)
-    #        x_esh_low.append(x)
+
 
     #### Increase resolution with the trained GAN       
     lowres_tensor = go_lowres_tens(rescaled)       
@@ -323,13 +314,6 @@ def galblend(gals=1, lim_hmag=24, plot_it=True,goodscat=goodscat,goodsfits=goods
         if (1<num[boz][0]<64)&(1<num[boz][1]<64):
             x_esh_fd.append(num[boz][0])
             y_esh_fd.append(num[boz][1])
-    #blobs_log = blob_log(GANres-np.mean(GANres), min_sigma=0.1, max_sigma=5, num_sigma=20, threshold=0.1, overlap=0.75, log_scale=True, exclude_border=False)
-    #x_esh_fd,y_esh_fd = [],[]
-    #for blob in blobs_log:
-    #    x, y, r = blob
-    #    if ((r>1)&(10<x<50)&(10<y<50)):
-    #        y_esh_fd.append(y)
-    #        x_esh_fd.append(x)
 
     
     if plot_it:
@@ -350,13 +334,13 @@ def galblend(gals=1, lim_hmag=24, plot_it=True,goodscat=goodscat,goodsfits=goods
             plt.axis('off')
 
         plt.subplot(1,n+2,n)
-        plt.imshow(dada,origin='lower')
+        plt.imshow(rescaled,origin='lower')
         plt.text(2,55,'Sum',color='y',fontsize=20)
         plt.plot(y_esh,x_esh,'ro')
         plt.axis('off')
 
         plt.subplot(1,n+2,n+1)
-        plt.imshow(lowres,origin='lower')
+        plt.imshow(rescaledlow,origin='lower')
         plt.text(1.5,18,'Lowres',color='y',fontsize=20)
         plt.plot(y_esh_low,x_esh_low,'ro')
         plt.axis('off')
@@ -370,4 +354,4 @@ def galblend(gals=1, lim_hmag=24, plot_it=True,goodscat=goodscat,goodsfits=goods
         plt.tight_layout()
         plt.show()
         
-    return dada,lowres,fd[0,0,:,:],[x2,y2,z2,flux2,s2,[[x_esh,y_esh],[x_esh_low,y_esh_low],[x_esh_fd,y_esh_fd]]]
+    return im,da1,da2[0,:,:],lowres,fd[0,0,:,:],[x2,y2,z2,flux2,s2,[[x_esh,y_esh],[x_esh_low,y_esh_low],[x_esh_fd,y_esh_fd]]]
