@@ -7,7 +7,7 @@ import ipdb
 
 
 class ObjectData():
-    def __init__(self,x_true=None,y_true=None, x_gan=None, y_gan = None, x_lores = None, y_lores=None,image_size = 64):
+    def __init__(self,x_true=None,y_true=None, x_gan=None, y_gan = None, x_lores = None, y_lores=None,image_size = 64, resample_factor = 1./3.):
 
 
         assert len(x_true) == len(y_true), 'x and y (true) must be the same length'
@@ -24,8 +24,8 @@ class ObjectData():
         dist = np.sqrt((np.array(x_lores) - xcen)**2 + (np.array(y_lores)-ycen)**2)
         self.lores_match_ind = np.argmin(dist)
         
-        self.x_lores = x_lores[self.lores_match_ind]
-        self.y_lores = y_lores[self.lores_match_ind]
+        self.x_lores = x_lores[self.lores_match_ind]*resample_factor
+        self.y_lores = y_lores[self.lores_match_ind]*resample_factor
 
         self.nobj_true = len(self.x_true)
         self.nobj_gan = len(self.x_gan)

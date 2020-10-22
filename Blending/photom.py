@@ -174,7 +174,6 @@ def fit_mof(entry,obs,max_tries = 5, max_chi2 = 25):
     params2 = parameter_array(result['pars'][npars_per_object:])
     errs2 = parameter_array(result['pars_err'][npars_per_object:])    
     params2['chisq'] = chi2
-    ipdb.set_trace()
     #image = fitter.make_image()
     #fig,(ax1,ax2,ax3) = plt.subplots(nrows=1,ncols=3,figsize=(21,7))
     #ax1.imshow(obs.image,origin='lower')
@@ -296,8 +295,8 @@ if __name__ == '__main__':
         flux_lores[i] = pars_lores['flux']/flux_calib
         flux_lores_err[i] = errs_lores['flux']/flux_calib
         # Determine which source this is closer to.
-        dist1 = np.sqrt( (pars1['xcen'] - coords['x1'][i])**2 + (pars1['ycen'] - coords['y1'][i])**2)
-        dist2 = np.sqrt( (pars1['xcen'] - coords['x2'][i])**2 + (pars1['ycen'] - coords['y2'][i])**2)
+        dist1 = np.sqrt( (pars1['xcen'] - coords['x1'][i]/3.)**2 + (pars1['ycen'] - coords['y1'][i]/3.)**2)
+        dist2 = np.sqrt( (pars1['xcen'] - coords['x2'][i]/3.)**2 + (pars1['ycen'] - coords['y2'][i]/3.)**2)
         if dist1 < dist2:
             flux_ref_lores[i] = coords['flux1'][i]
         else:
