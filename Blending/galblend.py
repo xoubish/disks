@@ -54,10 +54,10 @@ netG = ''
 manualSeed = random.randint(1, 10000)
 torch.manual_seed(manualSeed)
 nc = 1
-#goodsfits = './data/goodss_all_acs_wfc_f775w_060mas_v1.5_drz.fits'
-#goodscat = './data/gds.fits'
-goodsfits = '/Users/shemmati/Desktop/GOODS/goodss_all_acs_wfc_f775w_060mas_v1.5_drz.fits'
-goodscat='/Users/shemmati/Dropbox/WFIRST_WPS/CANDELS_fits/gds.fits'
+goodsfits = './data/goodss_all_acs_wfc_f775w_060mas_v1.5_drz.fits'
+goodscat = './data/gds.fits'
+#goodsfits = '/Users/shemmati/Desktop/GOODS/goodss_all_acs_wfc_f775w_060mas_v1.5_drz.fits'
+#goodscat='/Users/shemmati/Dropbox/WFIRST_WPS/CANDELS_fits/gds.fits'
 psfhigh='../psfs/psf_i.fits'
 psflow='../psfs/PSF_subaru_i.fits'
 
@@ -354,4 +354,4 @@ def galblend(gals=1, lim_hmag=24, plot_it=True,goodscat=goodscat,goodsfits=goods
         plt.tight_layout()
         plt.show()
         
-    return im,da1,da2[0,:,:],lowres,fd[0,0,:,:],[x2,y2,z2,flux2,s2,[[x_esh,y_esh],[x_esh_low,y_esh_low],[x_esh_fd,y_esh_fd]]]
+    return im,da1,da2[0,:,:],lowres,fd[0,0,:,:],psf,psflo,[x2,y2,z2,flux2,s2,[[x_esh,y_esh],[x_esh_low,y_esh_low],[x_esh_fd,y_esh_fd]]]

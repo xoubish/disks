@@ -174,7 +174,7 @@ def fit_mof(entry,obs,max_tries = 5, max_chi2 = 25):
     params2 = parameter_array(result['pars'][npars_per_object:])
     errs2 = parameter_array(result['pars_err'][npars_per_object:])    
     params2['chisq'] = chi2
-            
+    ipdb.set_trace()
     #image = fitter.make_image()
     #fig,(ax1,ax2,ax3) = plt.subplots(nrows=1,ncols=3,figsize=(21,7))
     #ax1.imshow(obs.image,origin='lower')
