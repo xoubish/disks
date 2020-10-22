@@ -3,6 +3,32 @@ import galblend
 import matplotlib.pyplot as plt
 
 
+class ObjectData():
+    def __init__(self,x_true=None,y_true=None, x_gan=None, y_gan = None, x_lores = None, y_lores=None,image_size = 64):
+
+
+        assert len(x_true) == len(y_true), 'x and y (true) must be the same length'
+        assert len(x_gan) == len(y_gan), 'x and y (GAN) must be the same length'
+        assert len(x_lores) == len(y_lores), 'x and y (lores) must be the same length'
+        
+        self.x_true = x_true
+        self.y_true = y_true
+        self.x_gan = x_gan
+        self.y_gan = y_gan
+
+        # Here let's just choose the closest object to the center.
+        xcen,ycen = image_size/2.,image_size/2.
+        dist = np.sqrt((x_lores - xcen)**2 + (y_lores-ycen)**2)
+        self.lores_match_ind = np.argmin(dist)
+        
+        self.x_lores = x_lores[self.lores_match_ind]
+        self.y_lores = y_lores[self.lores_match_ind]
+
+        self.nobj_true = len(x_true)
+        self.nobj_gan = len(x_gan)
+        self.nobj_lores = len(x_lores)
+
+
 class Simulation(object):
 
     def __init__(self,number_of_images = 100, do_image_plots=False):
@@ -10,17 +36,18 @@ class Simulation(object):
         self.do_image_plots = do_image_plots
         self.scale_hires = 1.0/3.0
         scale.scale_lores = 1.0
-        pass
+
+
 
     def make_simulated_data(self):
 
+
+        self.object_data = []
         self.hires_obs = []
-        self.hires_data = []
         self.lores_obs = []
-        self.lores_data = []
         self.single_obs1 = []
         self.single_obs2 = []
-        self.single_data = []        
+        
         for i in range(self.number_of_images):
             hi,i1,i2,lo,gan,psf_hires,psf_lores,data = galblend.galblend(gals=2,lim_hmag=24,plot_it=self.do_image_plots)
             this_hires_obs = self._make_observation(hi,psf_hires,image_scale=self.scale_hires,psf_scale=self.scale_hires)
@@ -28,13 +55,17 @@ class Simulation(object):
             this_single_obs2 = self._make_observation(i2,psf_hires,image_scale=self.scale_hires,psf_scale=self.scale_hires)
             this_lores_obs = self._make_observation(lo,psf_lores,image_scale=self.scale_lores,psf_scale=self.scale_lores)
 
-            self.hires_obs.append(this_hires_obs)
+            # Put the catalog positions into an appropriate structure.
             xhi,yhi = data[0],data[1]
-            self.hires_data.append([[xhi[0],yhi[0]],[xhi[1],yhi[1]]])
+            xgan,ygan = data[-1][-1][0], data[-1][-1][1]
+            xlo,ylo = data[-1][-2]
+            thisData = ObjectData(x_true=xhi,y_true=yhi, x_gan=xgan, y_gan = ygan, x_lores = xlo, y_lores=ylo)
+            self.object_data.append(thisData)
+
+            # Store the images in Observation objects.
+            self.hires_obs.append(this_hires_obs)
             self.lores_obs.append(this_lores_obs)
-            self.lores_data.append(data[1])
             self.single_obs1.append(this_single_obs1)
-            self.single_data.append(data[2])
             self.single_obs2.append(this_single_obs2)
 
         print(f"finished making Observations for {self.number_of_images} observations.")
@@ -42,11 +73,40 @@ class Simulation(object):
     def fit_simulated_data(self):
         # Loop over the existing simulations.
         # Fit them all, and put the results into catalogs.
+        catalog_dtype = [('input_flux1',np.float),('input_flux2',np.float),
+                         ('input_flux1_err',np.float),('input_flux2_err',np.float),
+                         ('hires_deblended_flux1',np.float),('hires_deblended_flux2',np.float),
+                         ('hires_deblended_flux1_err',np.float),('hires_deblended_flux2_err',np.float),                         
+                         ('lores_deblended_flux1',np.float),('lores_deblended_flux2',np.float),
+                         ('lores_deblended_flux1_err',np.float),('lores_deblended_flux2_err',np.float),
+                         ('lores_blended_flux',np.float),('lores_blended_flux_err',np.float)]
+        self.catalog = np.empty(self.number_of_images,dtype=catalog_dtype)
         
+        for i,datum in enumerate(self.object_data):
 
-        
-        pass
-    
+            # First, fit each hires image separately.
+            result1 = self._fit_one_obs(single_obs1[i],datum.x_true[0],datum.y_true[0])
+            result2 = self._fit_one_obs(single_obs1[2],datum.x_true[1],datum.y_true[1])
+            # Package the results into convenient catalog format.
+            self.catalog[i]['input_flux1'] = result1[0]['flux']
+            self.catalog[i]['input_flux1_err'] = result1[0]['flux_err']
+            self.catalog[i]['input_flux2'] = result2[0]['flux']
+            self.catalog[i]['input_flux2_err'] = result2[0]['flux_err']
+
+            # Then, deblend on lores.
+            deblend_result1,deblend_result2 = self._fit_one_obs( self.lores_obs,datum.x_gan,datum.y_gan )
+            # Package the results into convenient catalog format.
+            self.catalog[i]['lores_deblended_flux1'] = deblend_result1[0]['flux']
+            self.catalog[i]['lores_deblended_flux1_err'] = deblend_result1[0]['flux_err']            
+            self.catalog[i]['lores_deblended_flux2'] = deblend_result2[0]['flux']
+            self.catalog[i]['lores_deblended_flux2'] = deblend_result2[0]['flux_err']
+            
+            # Finally, don't deblend.
+            blend_result = self._fit_one_obs(self.lores_obs, datum.x_lores,datum.y_lores)
+            self.catalog[i]['lores_blended_flux'] = blend_result['flux']
+            self.catalog[i]['lores_blended_flux_err'] = blend_result['flux_err']
+            
+                
     def _make_observation(self, image,psf,image_scale=1.0, psf_scale=1.0, image_noise = .055,psf_noise = 1e-3, scale = 1.0):
         gal_image = get_image(objid)
         psf_image = get_psf(objid)
@@ -118,6 +178,7 @@ class Simulation(object):
             F_prior)
     
         return priors
+
     def _get_parameter_dict(self,pars):
         result = {}
         result['xcen'] = pars[0]
@@ -140,7 +201,7 @@ class Simulation(object):
     
     
 
-    def _fit_one_obs(self,obs,,xpos,ypos,fitpars = {'ftol': 1.0e-5,'xtol': 1.0e-5}):
+    def _fit_one_obs(self,obs,xpos,ypos,fitpars = {'ftol': 1.0e-5,'xtol': 1.0e-5}):
         prior = self._get_priors(x_xpos=xpos, y_pos=ypos)
         npars_per_object = 7 # Only for BDF fits
         n_object = len(xpos)
@@ -177,6 +238,7 @@ class Simulation(object):
         
     
     def go(self):
-        pass
+        self.make_simulated_data()
+        self.fit_simulated_data()
 
     
