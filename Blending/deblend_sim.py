@@ -16,8 +16,8 @@ class ObjectData():
         
         self.x_true = x_true
         self.y_true = y_true
-        self.x_gan = [x*resample_factor-3 for x in x_gan]
-        self.y_gan = [y*resample_factor-3 for y in y_gan]
+        self.x_gan = [x*resample_factor for x in x_gan]
+        self.y_gan = [y*resample_factor for y in y_gan]
 
         # Here let's just choose the closest object to the center.
         xcen,ycen = image_size/2.,image_size/2.
