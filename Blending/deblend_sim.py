@@ -5,6 +5,10 @@ import ngmix
 import mof
 import ipdb
 
+# For GP plot.
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
+
 
 class ObjectData():
     def __init__(self,x_true=None,y_true=None, x_gan=None, y_gan = None, x_lores = None, y_lores=None,image_size = 64, resample_factor = 1./3.):
@@ -291,6 +295,17 @@ class Simulation(object):
         self.fit_simulated_data()
 
 
+    def get_gp(self,x,y,yerr,min_calib_error = 0.05, sys_add_error = 1.):
+
+        X  =  np.atleast_2d(x).T
+        Y  = y
+        dy = np.sqrt(yerr**2 + (x*min_calib_error)**2 + sys_add_error**2)
+        kernel =   C(10.0, (1e-4, 1e4)) * RBF(1000, (1e1, 1e7))
+        gp = GaussianProcessRegressor(kernel=kernel, alpha= dy ** 2,n_restarts_optimizer=10)
+        gp.fit(X,Y)
+        return gp
+        
+
     def make_plots(self,filename='blending_results.png',chi2_thresh = 2.5):
         # Plot various generated catalog quantities against one another.
         fig,(ax1,ax2) = plt.subplots(nrows=1,ncols=2,figsize=(14,7))
@@ -300,30 +315,59 @@ class Simulation(object):
         good_blended = self.catalog['lores_blended_chi2per'] <= chi2_thresh
 
         keep = good_input & good_deblended
-        
-        ax1.errorbar(self.catalog['input_flux1'][keep],self.catalog['lores_deblended_flux1'][keep],xerr=self.catalog['input_flux1_err'][keep],yerr=self.catalog['lores_deblended_flux1_err'][keep],fmt='.',label='flux1,good',color='blue')
-        ax1.errorbar(self.catalog['input_flux1'][~keep],self.catalog['lores_deblended_flux1'][~keep],xerr=self.catalog['input_flux1_err'][~keep],yerr=self.catalog['lores_deblended_flux1_err'][~keep],fmt='.',label='flux1,bad',color='red')
-        ax1.errorbar(self.catalog['input_flux2'][keep],self.catalog['lores_deblended_flux2'][keep],xerr=self.catalog['input_flux2_err'][keep],yerr=self.catalog['lores_deblended_flux2_err'][keep],fmt='.',label='flux2,good',color='blue')
-        ax1.errorbar(self.catalog['input_flux2'][~keep],self.catalog['lores_deblended_flux2'][~keep],xerr=self.catalog['input_flux2_err'][~keep],yerr=self.catalog['lores_deblended_flux2_err'][~keep],fmt='.',label='flux2,bad',color='red')        
-        ax1.set_xscale('log')
-        ax1.set_yscale('log')
-        ax1.plot(self.catalog['input_flux1'],self.catalog['input_flux1'],'--',color='grey',linestyle='--',alpha=0.5)
 
+        x_train = np.hstack([self.catalog['input_flux1'][keep],self.catalog['input_flux2'][keep]])
+        y_train = np.hstack([self.catalog['lores_deblended_flux1'][keep],self.catalog['lores_deblended_flux2'][keep]])
+        y_err_train = np.hstack([self.catalog['lores_deblended_flux1_err'][keep],self.catalog['lores_deblended_flux2_err'][keep]])
+        
+        gp_db = self.get_gp(x_train,y_train/x_train-1,y_err_train/x_train)
+        Xinterp = np.atleast_2d(np.logspace(-2,2,100)).T
+        Yinterp,Yinterp_err = gp_db.predict(Xinterp,return_std=True)
+        errscl = np.sqrt(np.sum(keep))
+
+        ax1.errorbar(self.catalog['input_flux1'][keep],self.catalog['lores_deblended_flux1'][keep]/self.catalog['input_flux1'][keep]-1.,xerr=self.catalog['input_flux1_err'][keep],yerr=self.catalog['lores_deblended_flux1_err'][keep]/self.catalog['input_flux1'][keep],fmt='.',label='flux1,good',color='blue',elinewidth=0.2,markersize=0.5,)
+        ax1.errorbar(self.catalog['input_flux1'][~keep],self.catalog['lores_deblended_flux1'][~keep]/self.catalog['input_flux1'][~keep]-1.,xerr=self.catalog['input_flux1_err'][~keep],yerr=self.catalog['lores_deblended_flux1_err'][~keep]/self.catalog['input_flux1'][~keep],fmt='.',label='flux1,bad',color='red',elinewidth=0.2,markersize=0.5,)
+        ax1.errorbar(self.catalog['input_flux2'][keep],self.catalog['lores_deblended_flux2'][keep]/self.catalog['input_flux2'][keep]-1.,xerr=self.catalog['input_flux2_err'][keep],yerr=self.catalog['lores_deblended_flux2_err'][keep]/self.catalog['input_flux2'][keep],fmt='.',label='flux2,good',color='blue',elinewidth=0.2,markersize=0.5,)
+        ax1.errorbar(self.catalog['input_flux2'][~keep],self.catalog['lores_deblended_flux2'][~keep]/self.catalog['input_flux2'][~keep]-1.,xerr=self.catalog['input_flux2_err'][~keep],yerr=self.catalog['lores_deblended_flux2_err'][~keep]/self.catalog['input_flux2'][~keep],fmt='.',label='flux2,bad',color='red',elinewidth=0.2,markersize=0.5,)
+        # Add the GP fit.
+        ax1.fill_between(Xinterp.ravel(),np.zeros(Xinterp.size)+0.1,np.zeros(Xinterp.size)-0.1,color='grey',alpha=0.33,zorder=1)
+        ax1.fill_between(Xinterp.ravel(),(Yinterp-Yinterp_err),(Yinterp+Yinterp_err),color='orange')
+        ax1.fill_between(Xinterp.ravel(),(Yinterp-Yinterp_err*errscl),(Yinterp+Yinterp_err*errscl),color='orange',alpha=0.25)
+        ax1.set_xscale('log')
+        ax1.set_yscale('symlog')
+        ax1.set_xlim(0.1,100)
         keep = good_input & good_blended
+
+
+        x_train = np.hstack([self.catalog['input_flux1'][keep],self.catalog['input_flux2'][keep]])
+        y_train = np.hstack([self.catalog['lores_deblended_flux1'][keep],self.catalog['lores_deblended_flux2'][keep]])
+        y_err_train = np.hstack([self.catalog['lores_deblended_flux1_err'][keep],self.catalog['lores_deblended_flux2_err'][keep]])
+        
+        gp_bl = self.get_gp(x_train,y_train/x_train-1,y_err_train/x_train)
+        Xinterp = np.atleast_2d(np.logspace(-2,2,100)).T
+        Yinterp,Yinterp_err = gp_bl.predict(Xinterp,return_std=True)
+        errscl = np.sqrt(np.sum(keep))
+
         
         xerr = np.sqrt(self.catalog['input_flux1_err']**2+self.catalog['input_flux2_err']**2)
-        ax2.errorbar(self.catalog['input_flux1'][keep]+self.catalog['input_flux2'][keep],self.catalog['lores_blended_flux'][keep],xerr=xerr[keep],yerr=self.catalog['lores_blended_flux_err'][keep],fmt='.',label='good',color='blue')
-        ax2.errorbar(self.catalog['input_flux1'][~keep]+self.catalog['input_flux2'][~keep],self.catalog['lores_blended_flux'][~keep],xerr=xerr[~keep],yerr=self.catalog['lores_blended_flux_err'][~keep],fmt='.',label='bad',color='blue')
+        ax2.errorbar(self.catalog['input_flux1'][keep]+self.catalog['input_flux2'][keep],self.catalog['lores_blended_flux'][keep]/(self.catalog['input_flux1'][keep]+self.catalog['input_flux2'][keep])-1.,xerr=xerr[keep],yerr=self.catalog['lores_blended_flux_err'][keep]/(self.catalog['input_flux1'][keep]+self.catalog['input_flux2'][keep]),fmt='.',label='good',color='blue',elinewidth=0.2,markersize=0.5)
+        ax2.errorbar(self.catalog['input_flux1'][~keep]+self.catalog['input_flux2'][~keep],self.catalog['lores_blended_flux'][~keep]/(self.catalog['input_flux1'][~keep]+self.catalog['input_flux2'][~keep])-1.,xerr=xerr[~keep],yerr=self.catalog['lores_blended_flux_err'][~keep]/(self.catalog['input_flux1'][~keep]+self.catalog['input_flux2'][~keep]),fmt='.',label='bad',color='blue',elinewidth=0.2,markersize=0.5)
         ax2.set_xscale('log')
-        ax2.set_yscale('log')
-        ax2.plot(self.catalog['input_flux1'],self.catalog['input_flux1'],'--',color='grey',linestyle='--',alpha=0.5)
+        ax2.set_yscale('symlog')
+        ax2.set_xlim(0.1,100)
+        ax2.axhline(0,color='grey',linestyle='--',alpha=0.5)
+        ax2.fill_between(Xinterp.ravel(),np.zeros(Xinterp.size)+0.1,np.zeros(Xinterp.size)-0.1,color='grey',alpha=0.33,zorder=1)
+        ax2.fill_between(Xinterp.ravel(),(Yinterp-Yinterp_err),(Yinterp+Yinterp_err),color='orange')
+        ax2.fill_between(Xinterp.ravel(),(Yinterp-Yinterp_err*errscl),(Yinterp+Yinterp_err*errscl),color='orange',alpha=0.25)
+        
         plt.tight_layout()
         fig.savefig(filename)
+        ipdb.set_trace()
 
 
 if __name__ == '__main__':
-    sim = Simulation(number_of_images=100)
+    sim = Simulation(number_of_images=500)
     sim.make_simulated_data()
-    sim.fit_simulated_data(render_fits=True)
+    sim.fit_simulated_data(render_fits=False)
     sim.make_plots()
     ipdb.set_trace()
