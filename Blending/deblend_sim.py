@@ -79,7 +79,7 @@ class Simulation(object):
 
         print(f"finished making Observations for {self.number_of_images} observations.")
             
-    def fit_simulated_data(self):
+    def fit_simulated_data(self,render_fits=False,plot_dir='./rendered_fits'):
         # Loop over the existing simulations.
         # Fit them all, and put the results into catalogs.
         catalog_dtype = [('input_flux1',np.float),('input_flux2',np.float),
@@ -94,8 +94,8 @@ class Simulation(object):
         for i,datum in enumerate(self.object_data):
 
             # First, fit each hires image separately.
-            result1 = self._fit_one_obs(self.single_obs1[i],datum.x_true[0],datum.y_true[0])
-            result2 = self._fit_one_obs(self.single_obs2[i],datum.x_true[1],datum.y_true[1])
+            result1 = self._fit_one_obs(self.single_obs1[i],datum.x_true[0],datum.y_true[0],render_fit=render_fits,plot_filename=f'{plot_dir}/mof-hires-1-{i:04}.png')
+            result2 = self._fit_one_obs(self.single_obs2[i],datum.x_true[1],datum.y_true[1],render_fit=render_fits,plot_filename=f'{plot_dir}/mof-hires-2-{i:04}.png')
             # Package the results into convenient catalog format.
             self.catalog[i]['input_flux1'] = result1[0]['flux']/self.flux_calibration
             self.catalog[i]['input_flux1_err'] = result1[0]['flux_err']/self.flux_calibration
@@ -103,7 +103,7 @@ class Simulation(object):
             self.catalog[i]['input_flux2_err'] = result2[0]['flux_err']/self.flux_calibration
 
             # Then, deblend on lores.
-            deblend_result1,deblend_result2 = self._fit_one_obs( self.lores_obs[i],datum.x_gan,datum.y_gan )
+            deblend_result1,deblend_result2 = self._fit_one_obs( self.lores_obs[i],datum.x_gan,datum.y_gan,render_fit=render_fits,plot_filename=f'{plot_dir}/mof-deblended-{i:04}.png')
             # Package the results into convenient catalog format.
             self.catalog[i]['lores_deblended_flux1'] = deblend_result1['flux']/self.flux_calibration
             self.catalog[i]['lores_deblended_flux1_err'] = deblend_result1['flux_err']/self.flux_calibration
@@ -111,7 +111,7 @@ class Simulation(object):
             self.catalog[i]['lores_deblended_flux2'] = deblend_result2['flux_err']/self.flux_calibration
             
             # Finally, don't deblend.
-            blend_result = self._fit_one_obs(self.lores_obs[i], datum.x_lores,datum.y_lores)
+            blend_result = self._fit_one_obs(self.lores_obs[i], datum.x_lores,datum.y_lores,render_fit=render_fits,plot_filename=f'{plot_dir}/mof-blended-{i:04}.png')
             self.catalog[i]['lores_blended_flux'] = blend_result[0]['flux']/self.flux_calibration
             self.catalog[i]['lores_blended_flux_err'] = blend_result[0]['flux_err']/self.flux_calibration
             
@@ -216,11 +216,11 @@ class Simulation(object):
         return gm_psf
     
 
-    def _fit_one_obs(self,obs,xpos,ypos,fitpars = {'ftol': 1.0e-5,'xtol': 1.0e-5},max_tries = 5):
+    def _fit_one_obs(self,obs,xpos,ypos,fitpars = {'ftol': 1.0e-5,'xtol': 1.0e-5},max_tries = 5,render_fit=False,plot_filename='model_fit.png'):
         if type(xpos) is not type([]):
             xpos = [xpos]
             ypos = [ypos]
-        prior = self._get_priors(x_pos=xpos, y_pos=ypos)
+        prior = self._get_priors(x_pos=ypos, y_pos=xpos)
         npars_per_object = 7 # Only for BDF fits
         n_object = len(xpos)
         acceptable_fit = False
@@ -232,6 +232,20 @@ class Simulation(object):
             # Did it work?
             result = fitter.get_result()
             if 'chi2per' in result.keys():
+                if render_fit:
+                    image = fitter.make_image()
+                    fig,(ax1,ax2,ax3) = plt.subplots(nrows=1,ncols=3,figsize=(21,7))
+                    ax1.imshow(obs.image,origin='lower')
+                    ax1.plot(xpos,ypos,'r+')
+                    ax2.imshow(image,origin='lower')
+                    ax2.plot(xpos,ypos,'r+')
+                    ax3.imshow(obs.image-image,origin='lower')
+                    ax3.plot(xpos,ypos,'r+')
+                    chi2per = result['chi2per']
+                    fig.suptitle(f"chi2per: {result['chi2per']:.08}")
+                    ipdb.set_trace()
+                    fig.savefig(plot_filename)
+                    plt.close(fig)
                 pars = fitter.get_result()['pars']
                 chi2 = result['chi2per']
                 print(f"{chi2}")
@@ -259,11 +273,29 @@ class Simulation(object):
         self.make_simulated_data()
         self.fit_simulated_data()
 
-    
+
+    def make_plots(self,filename='blending_results.png'):
+        # Plot various generated catalog quantities against one another.
+        fig,(ax1,ax2) = plt.subplots(nrows=1,ncols=2,figsize=(14,7))
+        
+        ax1.errorbar(self.catalog['input_flux2'],self.catalog['lores_deblended_flux2'],xerr=self.catalog['input_flux2_err'],yerr=self.catalog['lores_deblended_flux2_err'],fmt='.',label='flux2')
+        ax1.set_xscale('log')
+        ax1.set_yscale('log')
+        ax1.plot(self.catalog['input_flux1'],self.catalog['input_flux1'],'--',color='grey',linestyle='--',alpha=0.5)
+
+        xerr = np.sqrt(self.catalog['input_flux1_err']**2+self.catalog['input_flux2_err']**2)
+        ax2.errorbar(self.catalog['input_flux1']+self.catalog['input_flux2'],self.catalog['lores_blended_flux'],xerr=xerr,yerr=self.catalog['lores_blended_flux_err'],fmt='.')
+        ax2.set_xscale('log')
+        ax2.set_yscale('log')
+        ax2.plot(self.catalog['input_flux1'],self.catalog['input_flux1'],'--',color='grey',linestyle='--',alpha=0.5)
+        plt.tight_layout()
+        fig.savefig(filename)
+        ipdb.set_trace()
 
 
 if __name__ == '__main__':
-    sim = Simulation(number_of_images=100)
+    sim = Simulation(number_of_images=10)
     sim.make_simulated_data()
-    sim.fit_simulated_data()
+    sim.fit_simulated_data(render_fits=True)
+    sim.make_plots()
     ipdb.set_trace()
