@@ -16,8 +16,8 @@ class ObjectData():
         
         self.x_true = x_true
         self.y_true = y_true
-        self.x_gan = x_gan
-        self.y_gan = y_gan
+        self.x_gan = [x*resample_factor-3 for x in x_gan]
+        self.y_gan = [y*resample_factor-3 for y in y_gan]
 
         # Here let's just choose the closest object to the center.
         xcen,ycen = image_size/2.,image_size/2.
@@ -37,10 +37,11 @@ class Simulation(object):
     def __init__(self,number_of_images = 100, do_image_plots=False,max_tries=5,max_chi2perdof = 2.,flux_calibration = 5.07224239892):
         self.number_of_images = number_of_images
         self.do_image_plots = do_image_plots
-        self.scale_hires = 1.0/3.0
+        self.scale_hires = 1.0
         self.scale_lores = 1.0
+        self.scale_psf = 1./3.
         self.max_tries = max_tries # for fitting.
-        self.max_chi2 = max_chi2perdof
+        self.max_chi2per = max_chi2perdof
         self.flux_calibration = flux_calibration
 
 
@@ -55,10 +56,10 @@ class Simulation(object):
         
         for i in range(self.number_of_images):
             hi,i1,i2,lo,gan,psf_hires,psf_lores,data = galblend.galblend(gals=2,lim_hmag=24,plot_it=self.do_image_plots)
-            this_hires_obs = self._make_observation(hi,psf_hires,image_scale=self.scale_hires,psf_scale=self.scale_hires)
-            this_single_obs1 = self._make_observation(i1,psf_hires,image_scale=self.scale_hires,psf_scale=self.scale_hires)
-            this_single_obs2 = self._make_observation(i2,psf_hires,image_scale=self.scale_hires,psf_scale=self.scale_hires)
-            this_lores_obs = self._make_observation(lo,psf_lores,image_scale=self.scale_lores,psf_scale=self.scale_lores)
+            this_hires_obs = self._make_observation(hi,psf_hires,image_scale=self.scale_hires,psf_scale=self.scale_psf)
+            this_single_obs1 = self._make_observation(i1,psf_lores,image_scale=self.scale_hires,psf_scale=self.scale_psf)
+            this_single_obs2 = self._make_observation(i2,psf_lores,image_scale=self.scale_hires,psf_scale=self.scale_psf)
+            this_lores_obs = self._make_observation(lo,psf_lores,image_scale=self.scale_lores,psf_scale=self.scale_psf)
 
             # Put the catalog positions into an appropriate structure.
             xhi,yhi = data[0],data[1]
@@ -83,12 +84,14 @@ class Simulation(object):
         # Loop over the existing simulations.
         # Fit them all, and put the results into catalogs.
         catalog_dtype = [('input_flux1',np.float),('input_flux2',np.float),
+                         ('input_chi2per1',np.float),('input_chi2per2',np.float),
                          ('input_flux1_err',np.float),('input_flux2_err',np.float),
                          ('hires_deblended_flux1',np.float),('hires_deblended_flux2',np.float),
-                         ('hires_deblended_flux1_err',np.float),('hires_deblended_flux2_err',np.float),                         
+                         ('hires_deblended_flux1_err',np.float),('hires_deblended_flux2_err',np.float),
                          ('lores_deblended_flux1',np.float),('lores_deblended_flux2',np.float),
+                         ('lores_deblended_chi2per',np.float),
                          ('lores_deblended_flux1_err',np.float),('lores_deblended_flux2_err',np.float),
-                         ('lores_blended_flux',np.float),('lores_blended_flux_err',np.float)]
+                         ('lores_blended_flux',np.float),('lores_blended_chi2per',np.float),('lores_blended_flux_err',np.float)]
         self.catalog = np.zeros(len(self.object_data),dtype=catalog_dtype)
         
         for i,datum in enumerate(self.object_data):
@@ -98,14 +101,17 @@ class Simulation(object):
             result2 = self._fit_one_obs(self.single_obs2[i],datum.x_true[1],datum.y_true[1],render_fit=render_fits,plot_filename=f'{plot_dir}/mof-hires-2-{i:04}.png')
             # Package the results into convenient catalog format.
             self.catalog[i]['input_flux1'] = result1[0]['flux']/self.flux_calibration
+            self.catalog[i]['input_chi2per1'] = result1[0]['chi2per']
             self.catalog[i]['input_flux1_err'] = result1[0]['flux_err']/self.flux_calibration
             self.catalog[i]['input_flux2'] = result2[0]['flux']/self.flux_calibration
+            self.catalog[i]['input_chi2per2'] = result2[0]['chi2per']            
             self.catalog[i]['input_flux2_err'] = result2[0]['flux_err']/self.flux_calibration
 
             # Then, deblend on lores.
             deblend_result1,deblend_result2 = self._fit_one_obs( self.lores_obs[i],datum.x_gan,datum.y_gan,render_fit=render_fits,plot_filename=f'{plot_dir}/mof-deblended-{i:04}.png')
             # Package the results into convenient catalog format.
             self.catalog[i]['lores_deblended_flux1'] = deblend_result1['flux']/self.flux_calibration
+            self.catalog[i]['lores_deblended_chi2per'] = deblend_result1['chi2per']            
             self.catalog[i]['lores_deblended_flux1_err'] = deblend_result1['flux_err']/self.flux_calibration
             self.catalog[i]['lores_deblended_flux2'] = deblend_result2['flux']/self.flux_calibration
             self.catalog[i]['lores_deblended_flux2'] = deblend_result2['flux_err']/self.flux_calibration
@@ -113,15 +119,28 @@ class Simulation(object):
             # Finally, don't deblend.
             blend_result = self._fit_one_obs(self.lores_obs[i], datum.x_lores,datum.y_lores,render_fit=render_fits,plot_filename=f'{plot_dir}/mof-blended-{i:04}.png')
             self.catalog[i]['lores_blended_flux'] = blend_result[0]['flux']/self.flux_calibration
+            self.catalog[i]['lores_blended_chi2per'] = blend_result[0]['chi2per']
             self.catalog[i]['lores_blended_flux_err'] = blend_result[0]['flux_err']/self.flux_calibration
-            
-                
-    def _make_observation(self, gal_image,psf_image,image_scale=1.0, psf_scale=1.0, image_noise = .055,psf_noise = 1e-3, scale = 1.0):
+
+    def _estimate_noise(self,image):
+        noise = np.std([image[0,:],image[-1,:],image[:,0],image[:,-1]])
+        return noise
+
+    def _estimate_background(self,image):
+        bckgd = np.mean([image[0,:],image[-1,:],image[:,0],image[:,-1]])
+        return bckgd
+
+    def _make_observation(self, gal_image,psf_image,image_scale=1.0, psf_scale=1.0, image_noise = None,psf_noise = 1e-3, scale = 1.0, background_subtract = True):
+        if image_noise is None:
+            image_noise = self._estimate_noise(gal_image)
+        if background_subtract:
+            bckgd = self._estimate_background(gal_image)
+            gal_image = gal_image - bckgd
         weight_image = np.ones_like(gal_image) + 1./image_noise**2
         psf_weight_image = np.ones_like(psf_image) + 1./psf_noise**2
 
         jj_im = ngmix.jacobian.DiagonalJacobian(scale=image_scale,col=0,row=0)
-        jj_psf = ngmix.jacobian.DiagonalJacobian(scale=psf_scale,col=(psf_image.shape[0]-1)/2.,row=(psf_image.shape[0]-1)/2.)
+        jj_psf = ngmix.jacobian.DiagonalJacobian(scale=psf_scale,col=0,row=0)#(psf_image.shape[0]-1)/2.,row=(psf_image.shape[0]-1)/2.)
         psf_obs = ngmix.Observation(psf_image,weight=psf_weight_image,jacobian=jj_psf)
         psf_gmix = self._fit_psf(psf_obs)
         psf_obs.set_gmix(psf_gmix)
@@ -215,7 +234,6 @@ class Simulation(object):
         gm_psf = psf_boot.fitter.get_gmix()
         return gm_psf
     
-
     def _fit_one_obs(self,obs,xpos,ypos,fitpars = {'ftol': 1.0e-5,'xtol': 1.0e-5},max_tries = 5,render_fit=False,plot_filename='model_fit.png'):
         if type(xpos) is not type([]):
             xpos = [xpos]
@@ -236,20 +254,19 @@ class Simulation(object):
                     image = fitter.make_image()
                     fig,(ax1,ax2,ax3) = plt.subplots(nrows=1,ncols=3,figsize=(21,7))
                     ax1.imshow(obs.image,origin='lower')
-                    ax1.plot(xpos,ypos,'r+')
+                    ax1.plot(ypos,xpos,'r+')
                     ax2.imshow(image,origin='lower')
-                    ax2.plot(xpos,ypos,'r+')
+                    ax2.plot(ypos,xpos,'r+')
                     ax3.imshow(obs.image-image,origin='lower')
-                    ax3.plot(xpos,ypos,'r+')
+                    ax3.plot(ypos,xpos,'r+')
                     chi2per = result['chi2per']
                     fig.suptitle(f"chi2per: {result['chi2per']:.08}")
-                    ipdb.set_trace()
                     fig.savefig(plot_filename)
                     plt.close(fig)
                 pars = fitter.get_result()['pars']
-                chi2 = result['chi2per']
-                print(f"{chi2}")
-                if chi2 < self.max_chi2:
+                chi2per = result['chi2per']
+                print(f"{chi2per}")
+                if chi2per < self.max_chi2per:
                     acceptable_fit = True
                     print ("good enough")
                 else:
@@ -261,7 +278,7 @@ class Simulation(object):
         for i in range(n_object):
             this_params = self._get_parameter_dict(result['pars'][i*npars_per_object:((i+1)*npars_per_object)])
             this_errors = self._get_errors_dict(result['pars_err'][i*npars_per_object:((i+1)*npars_per_object)])
-            this_params['chisq'] = chi2
+            this_params['chi2per'] = chi2per
             this_params.update(this_errors)
             results.append(this_params)
 
@@ -274,27 +291,38 @@ class Simulation(object):
         self.fit_simulated_data()
 
 
-    def make_plots(self,filename='blending_results.png'):
+    def make_plots(self,filename='blending_results.png',chi2_thresh = 2.5):
         # Plot various generated catalog quantities against one another.
         fig,(ax1,ax2) = plt.subplots(nrows=1,ncols=2,figsize=(14,7))
+
+        good_input = (self.catalog['input_chi2per1'] <= chi2_thresh) & (self.catalog['input_chi2per2'] <= chi2_thresh)
+        good_deblended = self.catalog['lores_deblended_chi2per'] <= chi2_thresh
+        good_blended = self.catalog['lores_blended_chi2per'] <= chi2_thresh
+
+        keep = good_input & good_deblended
         
-        ax1.errorbar(self.catalog['input_flux2'],self.catalog['lores_deblended_flux2'],xerr=self.catalog['input_flux2_err'],yerr=self.catalog['lores_deblended_flux2_err'],fmt='.',label='flux2')
+        ax1.errorbar(self.catalog['input_flux1'][keep],self.catalog['lores_deblended_flux1'][keep],xerr=self.catalog['input_flux1_err'][keep],yerr=self.catalog['lores_deblended_flux1_err'][keep],fmt='.',label='flux1,good',color='blue')
+        ax1.errorbar(self.catalog['input_flux1'][~keep],self.catalog['lores_deblended_flux1'][~keep],xerr=self.catalog['input_flux1_err'][~keep],yerr=self.catalog['lores_deblended_flux1_err'][~keep],fmt='.',label='flux1,bad',color='red')
+        ax1.errorbar(self.catalog['input_flux2'][keep],self.catalog['lores_deblended_flux2'][keep],xerr=self.catalog['input_flux2_err'][keep],yerr=self.catalog['lores_deblended_flux2_err'][keep],fmt='.',label='flux2,good',color='blue')
+        ax1.errorbar(self.catalog['input_flux2'][~keep],self.catalog['lores_deblended_flux2'][~keep],xerr=self.catalog['input_flux2_err'][~keep],yerr=self.catalog['lores_deblended_flux2_err'][~keep],fmt='.',label='flux2,bad',color='red')        
         ax1.set_xscale('log')
         ax1.set_yscale('log')
         ax1.plot(self.catalog['input_flux1'],self.catalog['input_flux1'],'--',color='grey',linestyle='--',alpha=0.5)
 
+        keep = good_input & good_blended
+        
         xerr = np.sqrt(self.catalog['input_flux1_err']**2+self.catalog['input_flux2_err']**2)
-        ax2.errorbar(self.catalog['input_flux1']+self.catalog['input_flux2'],self.catalog['lores_blended_flux'],xerr=xerr,yerr=self.catalog['lores_blended_flux_err'],fmt='.')
+        ax2.errorbar(self.catalog['input_flux1'][keep]+self.catalog['input_flux2'][keep],self.catalog['lores_blended_flux'][keep],xerr=xerr[keep],yerr=self.catalog['lores_blended_flux_err'][keep],fmt='.',label='good',color='blue')
+        ax2.errorbar(self.catalog['input_flux1'][~keep]+self.catalog['input_flux2'][~keep],self.catalog['lores_blended_flux'][~keep],xerr=xerr[~keep],yerr=self.catalog['lores_blended_flux_err'][~keep],fmt='.',label='bad',color='blue')
         ax2.set_xscale('log')
         ax2.set_yscale('log')
         ax2.plot(self.catalog['input_flux1'],self.catalog['input_flux1'],'--',color='grey',linestyle='--',alpha=0.5)
         plt.tight_layout()
         fig.savefig(filename)
-        ipdb.set_trace()
 
 
 if __name__ == '__main__':
-    sim = Simulation(number_of_images=10)
+    sim = Simulation(number_of_images=100)
     sim.make_simulated_data()
     sim.fit_simulated_data(render_fits=True)
     sim.make_plots()
