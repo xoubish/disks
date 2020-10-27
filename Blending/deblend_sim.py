@@ -3,6 +3,8 @@ import galblend
 import matplotlib.pyplot as plt
 import ngmix
 import mof
+import moflib
+import priors as pedar
 import ipdb
 
 # For GP plot.
@@ -51,7 +53,6 @@ class Simulation(object):
 
     def make_simulated_data(self):
 
-
         self.object_data = []
         self.hires_obs = []
         self.lores_obs = []
@@ -59,7 +60,7 @@ class Simulation(object):
         self.single_obs2 = []
         
         for i in range(self.number_of_images):
-            hi,i1,i2,lo,gan,psf_hires,psf_lores,data = galblend.galblend(gals=2,lim_hmag=24,plot_it=self.do_image_plots)
+            hi,i1,i2,lo,gan,psf_hires,psf_lores,data = galblend.galblend(gals=2,lim_hmag=25,plot_it=self.do_image_plots)
             this_hires_obs = self._make_observation(hi,psf_hires,image_scale=self.scale_hires,psf_scale=self.scale_psf)
             this_single_obs1 = self._make_observation(i1,psf_lores,image_scale=self.scale_hires,psf_scale=self.scale_psf)
             this_single_obs2 = self._make_observation(i2,psf_lores,image_scale=self.scale_hires,psf_scale=self.scale_psf)
@@ -70,7 +71,7 @@ class Simulation(object):
             xgan,ygan = data[-1][-1][0], data[-1][-1][1]
             xlo,ylo = data[-1][-2]
             # Make sure that something was detected in every image.
-            if (len(xlo) == 0) or (len(xgan) != 2) or (len(xhi) != 2):
+            if not((len(xlo) == 1) and (len(xgan) == 2) and (len(xhi) == 2)):
                 continue
             
             thisData = ObjectData(x_true=xhi,y_true=yhi, x_gan=xgan, y_gan = ygan, x_lores = xlo, y_lores=ylo)
@@ -101,8 +102,10 @@ class Simulation(object):
         for i,datum in enumerate(self.object_data):
 
             # First, fit each hires image separately.
-            result1 = self._fit_one_obs(self.single_obs1[i],datum.x_true[0],datum.y_true[0],render_fit=render_fits,plot_filename=f'{plot_dir}/mof-hires-1-{i:04}.png')
-            result2 = self._fit_one_obs(self.single_obs2[i],datum.x_true[1],datum.y_true[1],render_fit=render_fits,plot_filename=f'{plot_dir}/mof-hires-2-{i:04}.png')
+            result1 = self._fit_one_obs(self.single_obs1[i],datum.x_true[0],datum.y_true[0],
+                                        render_fit=render_fits,plot_filename=f'{plot_dir}/mof-hires-1-{i:04}.png')
+            result2 = self._fit_one_obs(self.single_obs2[i],datum.x_true[1],datum.y_true[1],
+                                        render_fit=render_fits,plot_filename=f'{plot_dir}/mof-hires-2-{i:04}.png')
             # Package the results into convenient catalog format.
             self.catalog[i]['input_flux1'] = result1[0]['flux']/self.flux_calibration
             self.catalog[i]['input_chi2per1'] = result1[0]['chi2per']
@@ -112,7 +115,8 @@ class Simulation(object):
             self.catalog[i]['input_flux2_err'] = result2[0]['flux_err']/self.flux_calibration
 
             # Then, deblend on lores.
-            deblend_result1,deblend_result2 = self._fit_one_obs( self.lores_obs[i],datum.x_gan,datum.y_gan,render_fit=render_fits,plot_filename=f'{plot_dir}/mof-deblended-{i:04}.png')
+            deblend_result1,deblend_result2 = self._fit_one_obs( self.lores_obs[i],datum.x_gan,
+                                                                datum.y_gan,render_fit=render_fits,plot_filename=f'{plot_dir}/mof-deblended-{i:04}.png')
             # Package the results into convenient catalog format.
             self.catalog[i]['lores_deblended_flux1'] = deblend_result1['flux']/self.flux_calibration
             self.catalog[i]['lores_deblended_chi2per'] = deblend_result1['chi2per']            
@@ -121,7 +125,8 @@ class Simulation(object):
             self.catalog[i]['lores_deblended_flux2'] = deblend_result2['flux_err']/self.flux_calibration
             
             # Finally, don't deblend.
-            blend_result = self._fit_one_obs(self.lores_obs[i], datum.x_lores,datum.y_lores,render_fit=render_fits,plot_filename=f'{plot_dir}/mof-blended-{i:04}.png')
+            blend_result = self._fit_one_obs(self.lores_obs[i], datum.x_lores,datum.y_lores,
+                                             render_fit=render_fits,plot_filename=f'{plot_dir}/mof-blended-{i:04}.png')
             self.catalog[i]['lores_blended_flux'] = blend_result[0]['flux']/self.flux_calibration
             self.catalog[i]['lores_blended_chi2per'] = blend_result[0]['chi2per']
             self.catalog[i]['lores_blended_flux_err'] = blend_result[0]['flux_err']/self.flux_calibration
@@ -200,7 +205,7 @@ class Simulation(object):
     
         # now make a joint prior.  This one takes priors
         # for each parameter separately
-        priors = mof.priors.PriorBDFSepMulti(
+        priors = pedar.PriorBDFSepMulti(
             cen_priors,
             g_prior,
             T_prior,
@@ -249,7 +254,7 @@ class Simulation(object):
         n_tries = 0
         while (n_tries <= self.max_tries) & (not acceptable_fit):
             guess = prior.sample()
-            fitter = mof.moflib.MOF(obs,model='bdf',nobj=n_object,prior=prior)
+            fitter = moflib.MOF(obs,model='bdf',nobj=n_object,prior=prior)
             fitter.go(guess=guess)
             # Did it work?
             result = fitter.get_result()
@@ -269,10 +274,10 @@ class Simulation(object):
                     plt.close(fig)
                 pars = fitter.get_result()['pars']
                 chi2per = result['chi2per']
-                print(f"{chi2per}")
+                #print(f"{chi2per}")
                 if chi2per < self.max_chi2per:
                     acceptable_fit = True
-                    print ("good enough")
+                    #print ("good enough")
                 else:
                     n_tries = n_tries+1
             else:
@@ -362,12 +367,24 @@ class Simulation(object):
         
         plt.tight_layout()
         fig.savefig(filename)
-        ipdb.set_trace()
+        #ipdb.set_trace()
 
+    def write_cat(self,filename='blending_results.txt'):
+        f=open(filename,'w+')
+        f.write('# 0-Input_flux1 1-input_flux2 2-input_chi2per1 3-input_chi2per2 4-input_flux1_err 5-input_flux2_err'+
+                '6-hires_deblended_flux1  7-hires_deblended_flux2  8-hires_deblended_flux1_err  9-hires_deblended_flux2_err'+
+                '10-lores_deblended_flux1  11-lores_deblended_flux2   12-lores_deblended_chi2per   13-lores_deblended_flux1_err'+
+                '14-lores_deblended_flux2_err  15-lores_blended_flux   16-lores_blended_chi2per   17-lores_blended_flux_err'+'\n')
+        for i in self.catalog:
+            for j in i:
+                f.write(str(j)+'\t')
+            f.write('\n')
+        f.close()
 
 if __name__ == '__main__':
-    sim = Simulation(number_of_images=500)
+    sim = Simulation(number_of_images=50)
     sim.make_simulated_data()
     sim.fit_simulated_data(render_fits=False)
     sim.make_plots()
-    ipdb.set_trace()
+    sim.write_cat()
+    #ipdb.set_trace()

@@ -54,10 +54,10 @@ netG = ''
 manualSeed = random.randint(1, 10000)
 torch.manual_seed(manualSeed)
 nc = 1
-goodsfits = './data/goodss_all_acs_wfc_f775w_060mas_v1.5_drz.fits'
-goodscat = './data/gds.fits'
-#goodsfits = '/Users/shemmati/Desktop/GOODS/goodss_all_acs_wfc_f775w_060mas_v1.5_drz.fits'
-#goodscat='/Users/shemmati/Dropbox/WFIRST_WPS/CANDELS_fits/gds.fits'
+#goodsfits = './data/goodss_all_acs_wfc_f775w_060mas_v1.5_drz.fits'
+#goodscat = './data/gds.fits'
+goodsfits = '/Users/shemmati/Desktop/GOODS/goodss_all_acs_wfc_f775w_060mas_v1.5_drz.fits'
+goodscat='/Users/shemmati/Dropbox/WFIRST_WPS/CANDELS_fits/gds.fits'
 psfhigh='../psfs/psf_i.fits'
 psflow='../psfs/PSF_subaru_i.fits'
 
