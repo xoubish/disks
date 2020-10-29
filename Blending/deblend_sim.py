@@ -1,5 +1,5 @@
 import numpy as np
-import galblend
+from galblend import *
 import matplotlib.pyplot as plt
 import ngmix
 import mof
@@ -60,18 +60,23 @@ class Simulation(object):
         self.single_obs2 = []
         
         for i in range(self.number_of_images):
-            hi,i1,i2,lo,gan,psf_hires,psf_lores,data = galblend.galblend(gals=2,lim_hmag=25,plot_it=self.do_image_plots)
+            hi,i1,i2,lo,gan,psf_hires,psf_lores,data = galblend(gals=2,lim_hmag=25,plot_it=self.do_image_plots)
             this_hires_obs = self._make_observation(hi,psf_hires,image_scale=self.scale_hires,psf_scale=self.scale_psf)
             this_single_obs1 = self._make_observation(i1,psf_lores,image_scale=self.scale_hires,psf_scale=self.scale_psf)
             this_single_obs2 = self._make_observation(i2,psf_lores,image_scale=self.scale_hires,psf_scale=self.scale_psf)
             this_lores_obs = self._make_observation(lo,psf_lores,image_scale=self.scale_lores,psf_scale=self.scale_psf)
 
             # Put the catalog positions into an appropriate structure.
-            xhi,yhi = data[0],data[1]
-            xgan,ygan = data[-1][-1][0], data[-1][-1][1]
-            xlo,ylo = data[-1][-2]
+            #xhi,yhi = data[0],data[1]
+            #xgan,ygan = data[-1][-1][0], data[-1][-1][1]
+            #xlo,ylo = data[-1][-2]
+            
+            xhi,yhi = str2coord(str(data[5][0]))
+            xgan,ygan = str2coord(str(data[5][2]))
+            xlo,ylo = str2coord(str(data[5][1]))
+            
             # Make sure that something was detected in every image.
-            if not((len(xlo) == 1) and (len(xgan) == 2) and (len(xhi) == 2)):
+            if not((len(xhi) == 2) and(len(xlo) == 1) and (len(xgan) == 2)):
                 continue
             
             thisData = ObjectData(x_true=xhi,y_true=yhi, x_gan=xgan, y_gan = ygan, x_lores = xlo, y_lores=ylo)
@@ -114,6 +119,17 @@ class Simulation(object):
             self.catalog[i]['input_chi2per2'] = result2[0]['chi2per']            
             self.catalog[i]['input_flux2_err'] = result2[0]['flux_err']/self.flux_calibration
 
+
+            # Next, deblend on hires.
+            deblend_result1,deblend_result2 = self._fit_one_obs( self.hires_obs[i],datum.x_gan,
+                                                                datum.y_gan,render_fit=render_fits,plot_filename=f'{plot_dir}/mof-hi-deblended-{i:04}.png')
+            # Package the results into convenient catalog format.
+            self.catalog[i]['hires_deblended_flux1'] = deblend_result1['flux']/self.flux_calibration
+            self.catalog[i]['hires_deblended_flux1_err'] = deblend_result1['flux_err']/self.flux_calibration
+            self.catalog[i]['hires_deblended_flux2'] = deblend_result2['flux']/self.flux_calibration
+            self.catalog[i]['hires_deblended_flux2_err'] = deblend_result2['flux_err']/self.flux_calibration
+            
+            
             # Then, deblend on lores.
             deblend_result1,deblend_result2 = self._fit_one_obs( self.lores_obs[i],datum.x_gan,
                                                                 datum.y_gan,render_fit=render_fits,plot_filename=f'{plot_dir}/mof-deblended-{i:04}.png')
@@ -122,7 +138,7 @@ class Simulation(object):
             self.catalog[i]['lores_deblended_chi2per'] = deblend_result1['chi2per']            
             self.catalog[i]['lores_deblended_flux1_err'] = deblend_result1['flux_err']/self.flux_calibration
             self.catalog[i]['lores_deblended_flux2'] = deblend_result2['flux']/self.flux_calibration
-            self.catalog[i]['lores_deblended_flux2'] = deblend_result2['flux_err']/self.flux_calibration
+            self.catalog[i]['lores_deblended_flux2_err'] = deblend_result2['flux_err']/self.flux_calibration
             
             # Finally, don't deblend.
             blend_result = self._fit_one_obs(self.lores_obs[i], datum.x_lores,datum.y_lores,
@@ -382,7 +398,7 @@ class Simulation(object):
         f.close()
 
 if __name__ == '__main__':
-    sim = Simulation(number_of_images=5000)
+    sim = Simulation(number_of_images=200)
     sim.make_simulated_data()
     sim.fit_simulated_data(render_fits=False)
     sim.make_plots()
