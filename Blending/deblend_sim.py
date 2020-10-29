@@ -398,7 +398,7 @@ class Simulation(object):
         f.close()
 
 if __name__ == '__main__':
-    sim = Simulation(number_of_images=200)
+    sim = Simulation(number_of_images=1000)
     sim.make_simulated_data()
     sim.fit_simulated_data(render_fits=False)
     sim.make_plots()
