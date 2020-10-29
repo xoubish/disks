@@ -71,9 +71,9 @@ class Simulation(object):
             #xgan,ygan = data[-1][-1][0], data[-1][-1][1]
             #xlo,ylo = data[-1][-2]
             
-            xhi,yhi = str2coord(str(data[5][0]))
-            xgan,ygan = str2coord(str(data[5][2]))
-            xlo,ylo = str2coord(str(data[5][1]))
+            yhi,xhi = str2coord(str(data[5][0]))
+            ygan,xgan = str2coord(str(data[5][2]))
+            ylo,xlo = str2coord(str(data[5][1]))
             
             # Make sure that something was detected in every image.
             if not((len(xhi) == 2) and(len(xlo) == 1) and (len(xgan) == 2)):
