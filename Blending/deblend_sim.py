@@ -121,8 +121,8 @@ class Simulation(object):
 
 
             # Next, deblend on hires.
-            deblend_result1,deblend_result2 = self._fit_one_obs( self.hires_obs[i],datum.x_gan,
-                                                                datum.y_gan,render_fit=render_fits,plot_filename=f'{plot_dir}/mof-hi-deblended-{i:04}.png')
+            deblend_result1,deblend_result2 = self._fit_one_obs( self.hires_obs[i],datum.x_true,
+                                                                datum.y_true,render_fit=render_fits,plot_filename=f'{plot_dir}/mof-hi-deblended-{i:04}.png')
             # Package the results into convenient catalog format.
             self.catalog[i]['hires_deblended_flux1'] = deblend_result1['flux']/self.flux_calibration
             self.catalog[i]['hires_deblended_flux1_err'] = deblend_result1['flux_err']/self.flux_calibration
