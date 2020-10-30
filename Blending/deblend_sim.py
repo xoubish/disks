@@ -360,9 +360,9 @@ class Simulation(object):
         keep = good_input & good_blended
 
 
-        x_train = np.hstack([self.catalog['input_flux1'][keep],self.catalog['input_flux2'][keep]])
-        y_train = np.hstack([self.catalog['lores_deblended_flux1'][keep],self.catalog['lores_deblended_flux2'][keep]])
-        y_err_train = np.hstack([self.catalog['lores_deblended_flux1_err'][keep],self.catalog['lores_deblended_flux2_err'][keep]])
+        x_train = np.hstack([self.catalog['input_flux1'][keep],self.catalog['input_flux1'][keep]])
+        y_train = np.hstack([self.catalog['lores_blended_flux'][keep],self.catalog['lores_blended_flux'][keep]])
+        y_err_train = np.hstack([self.catalog['lores_blended_flux_err'][keep],self.catalog['lores_blended_flux_err'][keep]])
         
         gp_bl = self.get_gp(x_train,y_train/x_train-1,y_err_train/x_train)
         Xinterp = np.atleast_2d(np.logspace(-2,2,100)).T
