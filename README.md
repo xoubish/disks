@@ -1,3 +1,3 @@
 # Disks
 
-In this repository I make galaxies! 
+In this repository I make galaxies. 
