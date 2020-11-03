@@ -222,6 +222,8 @@ for epoch in range(opt.niter):
         
         kernel = kernel.to(device)
         img2 = torch.tensor(np.zeros((batch_size,nc,22,22)))
+        downsampled = torch.tensor(np.zeros((batch_size,22,22)))
+
         for ch in range(real_cpu.shape[1]):
             imagetoconvolv = real_cpu[:,ch,:,:].reshape(-1,1,64,64)
             kerneltoconvolv = kernel[:,ch,:,:].reshape(-1,1,41,41) 
