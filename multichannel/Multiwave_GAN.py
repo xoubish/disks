@@ -222,13 +222,13 @@ for epoch in range(opt.niter):
         
         kernel = kernel.to(device)
         img2 = torch.tensor(np.zeros((batch_size,nc,22,22)))
-        downsampled = torch.tensor(np.zeros((batch_size,22,22)))
+        downsampled = torch.tensor(np.zeros((batch_size,nc,22,22)))
 
         for ch in range(real_cpu.shape[1]):
             imagetoconvolv = real_cpu[:,ch,:,:].reshape(-1,1,64,64)
             kerneltoconvolv = kernel[:,ch,:,:].reshape(-1,1,41,41) 
             a = F.conv2d(imagetoconvolv, kerneltoconvolv,padding = 21) ## convolve with kernel
-            downsampled[:,...] = F.upsample(a[:,...],scale_factor=1/3,mode='bilinear') ### fix pixel scale
+            downsampled = F.upsample(a,scale_factor=1/3,mode='bilinear') ### fix pixel scale
             img2[:,ch,:,:] = downsampled[:,...]+0.25*torch.rand_like(downsampled[:,...]) ### add noise
             
         
