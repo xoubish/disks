@@ -226,8 +226,8 @@ for epoch in range(opt.niter):
             imagetoconvolv = real_cpu[:,ch,:,:].reshape(-1,1,64,64)
             kerneltoconvolv = kernel[:,ch,:,:].reshape(-1,1,41,41) 
             a = F.conv2d(imagetoconvolv, kerneltoconvolv,padding = 21) ## convolve with kernel
-            downsampled[:,ch,:,:] = F.upsample(a,scale_factor=1/3,mode='bilinear') ### fix pixel scale
-            img2[:,ch,:,:] = downsampled[:,ch,:,:]+0.25*torch.rand_like(downsampled[:,ch,:,:]) ### add noise
+            downsampled[:,...] = F.upsample(a[:,...],scale_factor=1/3,mode='bilinear') ### fix pixel scale
+            img2[:,ch,:,:] = downsampled[:,...]+0.25*torch.rand_like(downsampled[:,...]) ### add noise
             
         
         img = img2.view(-1,nc,22,22)
