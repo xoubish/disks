@@ -176,18 +176,24 @@ def go_lowres(galax,out_size=21, noise_sigma=0.05,psfhigh=psfhigh[2],psflow=psfl
 
     im = outp+np.random.normal(0,noise_sigma,outp.shape)    
     return im
+
 def MatchGan(x,y,x2,y2):
     num=0
+    x_out,y_out = [],[]
     if len(x2)>0:
         for i in range(len(x)):
             dis = distance(x2,np.repeat(y[i],len(x2)),y2,np.repeat(x[i],len(y2))) #distance of all Ganres to initial sources
             if np.min(dis)<5:
                 num+=1
+                u = np.argmin(dis)
+                x_out.append(x2[u])
+                y_out.append(y2[u])
     num = min(num,len(x2))
-    return num
+    return num,x_out,y_out
 
 def MatchLow(x,y,x2,y2):
     num=0
+    x_out,y_out = [],[]
     if len(x2)>0:
         xlo = np.array(x2)*3.0
         ylo = np.array(y2)*3.0
@@ -195,9 +201,23 @@ def MatchLow(x,y,x2,y2):
             dis = distance(xlo,np.repeat(y[i],len(xlo)),ylo,np.repeat(x[i],len(ylo))) #distance of all Ganres to initial sources
             if np.min(dis)<10:
                 num+=1
+                u = np.argmin(dis)
+                x_out.append(x2[u])
+                y_out.append(y2[u])
             dis = []
     num = min(num,len(x2))
-    return num
+    return num,x_out,y_out
+
+def distance(x1,x2,y1,y2):
+    return (np.sqrt((x1-x2)**2+(y1-y2)**2))
+
+def magdis(f1,f2):
+    r =np.ones_like(f1)
+    sel1 = (f1>f2)
+    r[sel1] = f1[sel1]/f2[sel1]
+    sel2 = (f2>=f1)
+    r[sel2]=f2[sel2]/f1[sel2]
+    return r 
 
 def go_lowres_tens(galax):
         
@@ -345,10 +365,10 @@ def galblend(gals=1, lim_hmag=25, plot_it=True,sel_band=2,goodscat=goodscat, goo
             x_esh_fd.append(num[boz][0])
             y_esh_fd.append(num[boz][1])
     
-    numgan = MatchGan(x2,y2,x_esh_fd,y_esh_fd)
-    numhi = MatchGan(x2,y2,x_esh,y_esh)
-    numlow = MatchLow(x2,y2,x_esh_low,y_esh_low)
-    
+    numgan,xgan,ygan = MatchGan(x2,y2,x_esh_fd,y_esh_fd)
+    numhi,xhi,yhi = MatchGan(x2,y2,x_esh,y_esh)
+    numlow,xlo,ylo = MatchLow(x2,y2,x_esh_low,y_esh_low)
+ 
     if plot_it:
         plt.figure(figsize=(12,4))
         n = gals+1
@@ -388,4 +408,4 @@ def galblend(gals=1, lim_hmag=25, plot_it=True,sel_band=2,goodscat=goodscat, goo
         plt.show() 
 
     
-    return im,da1[sel_band,:,:],dada2[0,sel_band,:,:],lowres,fd[0,0,:,:],psf,psflo,[x2,y2,z2,flux2,s2,[[x_esh,y_esh],[x_esh_low,y_esh_low],[x_esh_fd,y_esh_fd]]],[numhi,numlow,numgan]
+    return im[sel_band,:,:],da1[sel_band,:,:],dada2[0,sel_band,:,:],lowres,fd[0,sel_band,:,:],psf,psflo,[x2,y2,z2,flux2,s2,[[xhi,yhi],[xlo,ylo],[xgan,ygan]]],[numhi,numlow,numgan]
