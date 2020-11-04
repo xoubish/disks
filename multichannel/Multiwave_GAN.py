@@ -227,7 +227,7 @@ for epoch in range(opt.niter):
             imagetoconvolv = real_cpu[:,ch,:,:].reshape(-1,1,64,64)
             kerneltoconvolv = kernel[:,ch,:,:].reshape(-1,1,41,41) 
             a = F.conv2d(imagetoconvolv, kerneltoconvolv,padding = 21) ## convolve with kernel
-            img2[:,ch,:,:] = F.upsample(a,scale_factor=1/3,mode='bilinear') ### fix pixel scale
+            img2[:,ch,:,:] = (F.upsample(a,scale_factor=1/3,mode='bilinear')).reshape(-1,1,22,22) ### fix pixel scale
             img2[:,ch,:,:] = img2[:,ch,:,:]+0.25*torch.rand_like(img2[:,ch,:,:])
             
         
