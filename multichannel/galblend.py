@@ -177,17 +177,18 @@ def go_lowres(galax,out_size=21, noise_sigma=0.05,psfhigh=psfhigh[2],psflow=psfl
     im = outp+np.random.normal(0,noise_sigma,outp.shape)    
     return im
 
+
 def MatchGan(x,y,x2,y2):
     num=0
     x_out,y_out = [],[]
     if len(x2)>0:
-        for i in range(len(x)):
-            dis = distance(x2,np.repeat(y[i],len(x2)),y2,np.repeat(x[i],len(y2))) #distance of all Ganres to initial sources
-            if np.min(dis)<5:
+        for i in range(len(x2)):
+            dis = distance(x,np.repeat(x2[i],len(x)),y,np.repeat(y2[i],len(y))) #distance of all Ganres to initial sources
+            if np.min(dis)<4:
                 num+=1
                 u = np.argmin(dis)
-                x_out.append(x2[u])
-                y_out.append(y2[u])
+                x_out.append((x[u]).astype(np.uint8))
+                y_out.append((y[u]).astype(np.uint8))
     num = min(num,len(x2))
     return num,x_out,y_out
 
@@ -195,18 +196,18 @@ def MatchLow(x,y,x2,y2):
     num=0
     x_out,y_out = [],[]
     if len(x2)>0:
-        xlo = np.array(x2)*3.0
-        ylo = np.array(y2)*3.0
-        for i in range(len(x)):
-            dis = distance(xlo,np.repeat(y[i],len(xlo)),ylo,np.repeat(x[i],len(ylo))) #distance of all Ganres to initial sources
-            if np.min(dis)<10:
+        x2 = [jix*3.0 for jix in x2]
+        y2 = [jiy*3.0 for jiy in y2]
+        for i in range(len(x2)):
+            dis = distance(x,np.repeat(x2[i],len(x)),y,np.repeat(y2[i],len(y))) #distance of all Ganres to initial sources
+            if np.min(dis)<8:
                 num+=1
                 u = np.argmin(dis)
-                x_out.append(x2[u])
-                y_out.append(y2[u])
-            dis = []
+                x_out.append((x[u]/3).astype(np.uint8))
+                y_out.append((y[u]/3).astype(np.uint8))
     num = min(num,len(x2))
     return num,x_out,y_out
+
 
 def distance(x1,x2,y1,y2):
     return (np.sqrt((x1-x2)**2+(y1-y2)**2))
@@ -333,8 +334,8 @@ def galblend(gals=1, lim_hmag=25, plot_it=True,sel_band=2,goodscat=goodscat, goo
     x_esh,y_esh = [],[]
     for boz in range(len(num)):
         if (1<num[boz][0]<64)&(1<num[boz][1]<64):
-            x_esh.append(num[boz][0])
-            y_esh.append(num[boz][1])
+            x_esh.append(num[boz][1])
+            y_esh.append(num[boz][0])
       
     ### Reduce resolution and pixel scale to Subaru and add some noise
     lowres = go_lowres(im[sel_band,:,:])
@@ -342,12 +343,12 @@ def galblend(gals=1, lim_hmag=25, plot_it=True,sel_band=2,goodscat=goodscat, goo
     rescaledlow = (255.0 / (dadalow.max()+1) * (dadalow - dadalow.min())).astype(np.uint8)
 
     psflo = pyfits.getdata(psflow)
-    num = find_peaks(image=lowres, kernel = psflo,thresh=3*np.mean(lowres))
+    num = find_peaks(image=lowres, kernel = psflo,thresh=np.mean(lowres))
     x_esh_low,y_esh_low = [],[]
     for boz in range(len(num)):
         if (1<num[boz][0]<21)&(1<num[boz][1]<21):
-            x_esh_low.append(num[boz][0])
-            y_esh_low.append(num[boz][1])
+            x_esh_low.append(num[boz][1])
+            y_esh_low.append(num[boz][0])
 
 
     #### Increase resolution with the trained GAN       
@@ -362,8 +363,8 @@ def galblend(gals=1, lim_hmag=25, plot_it=True,sel_band=2,goodscat=goodscat, goo
     x_esh_fd,y_esh_fd = [],[]
     for boz in range(len(num)):
         if (1<num[boz][0]<64)&(1<num[boz][1]<64):
-            x_esh_fd.append(num[boz][0])
-            y_esh_fd.append(num[boz][1])
+            x_esh_fd.append(num[boz][1])
+            y_esh_fd.append(num[boz][0])
     
     numgan,xgan,ygan = MatchGan(x2,y2,x_esh_fd,y_esh_fd)
     numhi,xhi,yhi = MatchGan(x2,y2,x_esh,y_esh)
@@ -389,19 +390,19 @@ def galblend(gals=1, lim_hmag=25, plot_it=True,sel_band=2,goodscat=goodscat, goo
         plt.subplot(1,n+2,n)
         plt.imshow(im[sel_band,:,:],origin='lower')
         plt.text(2,55,'Sum',color='y',fontsize=20)
-        plt.plot(y_esh,x_esh,'ro')
+        plt.plot(x_esh,y_esh,'ro')
         plt.axis('off')
 
         plt.subplot(1,n+2,n+1)
         plt.imshow(lowres,origin='lower')
         plt.text(1.5,18,'Lowres',color='y',fontsize=20)
-        plt.plot(y_esh_low,x_esh_low,'ro')
+        plt.plot(x_esh_low,y_esh_low,'ro')
         plt.axis('off')
 
         plt.subplot(1,n+2,n+2)
         plt.imshow(fd[0,sel_band,:,:],origin='lower')
         plt.text(2,55,'GAN res',color='y',fontsize=20)
-        plt.plot(y_esh_fd,x_esh_fd,'ro')
+        plt.plot(x_esh_fd,y_esh_fd,'ro')
         plt.axis('off')
 
         plt.tight_layout()
