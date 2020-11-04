@@ -41,7 +41,6 @@ from peak_finding import (
 import cv2
 
 
-
 device = torch.device("cpu")
 
 batchSize = 64          # input batch size
