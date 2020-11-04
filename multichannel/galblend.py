@@ -344,7 +344,10 @@ def galblend(gals=1, lim_hmag=25, plot_it=True,sel_band=2,goodscat=goodscat, goo
         if (1<num[boz][0]<64)&(1<num[boz][1]<64):
             x_esh_fd.append(num[boz][0])
             y_esh_fd.append(num[boz][1])
-
+    
+    numgan = MatchGan(x2,y2,x_esh_fd,y_esh_fd)
+    numhi = MatchGan(x2,y2,x_esh,y_esh)
+    numlow = MatchLow(x2,y2,x_esh_low,y_esh_low)
     
     if plot_it:
         plt.figure(figsize=(12,4))
@@ -385,4 +388,4 @@ def galblend(gals=1, lim_hmag=25, plot_it=True,sel_band=2,goodscat=goodscat, goo
         plt.show() 
 
     
-    return im,da1[sel_band,:,:],dada2[0,sel_band,:,:],lowres,fd[0,0,:,:],psf,psflo,[x2,y2,z2,flux2,s2,[[x_esh,y_esh],[x_esh_low,y_esh_low],[x_esh_fd,y_esh_fd]]]
+    return im,da1[sel_band,:,:],dada2[0,sel_band,:,:],lowres,fd[0,0,:,:],psf,psflo,[x2,y2,z2,flux2,s2,[[x_esh,y_esh],[x_esh_low,y_esh_low],[x_esh_fd,y_esh_fd]]],[numhi,numlow,numgan]

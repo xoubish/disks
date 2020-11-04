@@ -60,7 +60,7 @@ class Simulation(object):
         self.single_obs2 = []
         
         for i in range(self.number_of_images):
-            hi,i1,i2,lo,gan,psf_hires,psf_lores,data = galblend(gals=2,lim_hmag=25,plot_it=self.do_image_plots)
+            hi,i1,i2,lo,gan,psf_hires,psf_lores,data,nums = galblend(gals=2,lim_hmag=25,plot_it=self.do_image_plots)
             this_hires_obs = self._make_observation(hi,psf_hires,image_scale=self.scale_hires,psf_scale=self.scale_psf)
             this_single_obs1 = self._make_observation(i1,psf_lores,image_scale=self.scale_hires,psf_scale=self.scale_psf)
             this_single_obs2 = self._make_observation(i2,psf_lores,image_scale=self.scale_hires,psf_scale=self.scale_psf)
@@ -76,7 +76,7 @@ class Simulation(object):
             ylo,xlo = str2coord(str(data[5][1]))
             
             # Make sure that something was detected in every image.
-            if not((len(xhi) == 2) and(len(xlo) == 1) and (len(xgan) == 2)):
+            if not((nums[0]==2)&( nums[1]==1 )&(nums[2]==2)):
                 continue
             
             thisData = ObjectData(x_true=xhi,y_true=yhi, x_gan=xgan, y_gan = ygan, x_lores = xlo, y_lores=ylo)
@@ -121,8 +121,7 @@ class Simulation(object):
 
 
             # Next, deblend on hires.
-            deblend_result1,deblend_result2 = self._fit_one_obs( self.hires_obs[i],datum.x_true,
-                                                                datum.y_true,render_fit=render_fits,plot_filename=f'{plot_dir}/mof-hi-deblended-{i:04}.png')
+            deblend_result1,deblend_result2 = self._fit_one_obs( self.hires_obs[i],datum.x_true,datum.y_true,render_fit=render_fits,plot_filename=f'{plot_dir}/mof-hi-deblended-{i:04}.png')
             # Package the results into convenient catalog format.
             self.catalog[i]['hires_deblended_flux1'] = deblend_result1['flux']/self.flux_calibration
             self.catalog[i]['hires_deblended_flux1_err'] = deblend_result1['flux_err']/self.flux_calibration

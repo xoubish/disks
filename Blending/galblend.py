@@ -183,16 +183,21 @@ def str2coord(string):
 
 def MatchGan(x,y,x2,y2):
     num=0
+    x_out,y_out = [],[]
     if len(x2)>0:
         for i in range(len(x)):
             dis = distance(x2,np.repeat(y[i],len(x2)),y2,np.repeat(x[i],len(y2))) #distance of all Ganres to initial sources
             if np.min(dis)<5:
                 num+=1
+                u = np.argmin(dis)
+                x_out.append(x2[u])
+                y_out.append(y2[u])
     num = min(num,len(x2))
-    return num
+    return num,x_out,y_out
 
 def MatchLow(x,y,x2,y2):
     num=0
+    x_out,y_out = [],[]
     if len(x2)>0:
         xlo = np.array(x2)*3.0
         ylo = np.array(y2)*3.0
@@ -200,9 +205,12 @@ def MatchLow(x,y,x2,y2):
             dis = distance(xlo,np.repeat(y[i],len(xlo)),ylo,np.repeat(x[i],len(ylo))) #distance of all Ganres to initial sources
             if np.min(dis)<10:
                 num+=1
+                u = np.argmin(dis)
+                x_out.append(x2[u])
+                y_out.append(y2[u])
             dis = []
     num = min(num,len(x2))
-    return num
+    return num,x_out,y_out
 
 def distance(x1,x2,y1,y2):
     return (np.sqrt((x1-x2)**2+(y1-y2)**2))
@@ -313,7 +321,10 @@ def galblend(gals=1, lim_hmag=24, plot_it=True,goodscat=goodscat,goodsfits=goods
         if (1<num[boz][0]<64)&(1<num[boz][1]<64):
             x_esh_fd.append(num[boz][0])
             y_esh_fd.append(num[boz][1])
-
+    
+    numgan,xgan,ygan = MatchGan(x2,y2,x_esh_fd,y_esh_fd)
+    numhi,xhi,yhi = MatchGan(x2,y2,x_esh,y_esh)
+    numlow,xlo,ylo = MatchLow(x2,y2,x_esh_low,y_esh_low)
     
     if plot_it:
         plt.figure(figsize=(12,4))
@@ -353,4 +364,4 @@ def galblend(gals=1, lim_hmag=24, plot_it=True,goodscat=goodscat,goodsfits=goods
         plt.tight_layout()
         plt.show()
         
-    return im,da1,da2[0,:,:],lowres,fd[0,0,:,:],psf,psflo,[x2,y2,z2,flux2,s2,[[x_esh,y_esh],[x_esh_low,y_esh_low],[x_esh_fd,y_esh_fd]]]
+    return im,da1,da2[0,:,:],lowres,fd[0,0,:,:],psf,psflo,[x2,y2,z2,flux2,s2,[[xhi,yhi],[xlo,ylo],[xgan,ygan]]],[numhi,numlow,numgan]
