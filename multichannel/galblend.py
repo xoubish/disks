@@ -290,7 +290,7 @@ def galblend(gals=1, lim_hmag=25, plot_it=True,sel_band=2,goodscat=goodscat, goo
     flux2[0] = iflux[n] 
     s2[0] = fwhm[n]
     
-    dada2 = np.zeros([gals-1,7,64,64])    
+    dada2 = np.zeros([gals,7,64,64])    
     for boz in range(gals-1):
         data2 = np.zeros([7,140,140])
         

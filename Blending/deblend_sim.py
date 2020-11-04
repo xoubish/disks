@@ -13,7 +13,7 @@ from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
 
 
 class ObjectData():
-    def __init__(self,x_true=None,y_true=None, x_gan=None, y_gan = None, x_lores = None, y_lores=None,image_size = 64, resample_factor = 1./3.):
+    def __init__(self,x_true=None,y_true=None, x_gan=None, y_gan = None, x_lores = None, y_lores=None, mags = None, redshifts = None, sizes=None,image_size = 64, resample_factor = 1./3.):
 
 
         assert len(x_true) == len(y_true), 'x and y (true) must be the same length'
@@ -36,6 +36,10 @@ class ObjectData():
         self.nobj_true = len(self.x_true)
         self.nobj_gan = len(self.x_gan)
         self.nobj_lores = 1
+        
+        self.mags = mags
+        self.redshifts = redshifts
+        self.sizes = sizes
 
 
 class Simulation(object):
@@ -66,20 +70,20 @@ class Simulation(object):
             this_single_obs2 = self._make_observation(i2,psf_lores,image_scale=self.scale_hires,psf_scale=self.scale_psf)
             this_lores_obs = self._make_observation(lo,psf_lores,image_scale=self.scale_lores,psf_scale=self.scale_psf)
 
-            # Put the catalog positions into an appropriate structure.
-            #xhi,yhi = data[0],data[1]
-            #xgan,ygan = data[-1][-1][0], data[-1][-1][1]
-            #xlo,ylo = data[-1][-2]
             
-            yhi,xhi = str2coord(str(data[5][0]))
-            ygan,xgan = str2coord(str(data[5][2]))
-            ylo,xlo = str2coord(str(data[5][1]))
+            xhi,yhi = str2coord(str(data[5][0]))
+            xgan,ygan = str2coord(str(data[5][2]))
+            xlo,ylo = str2coord(str(data[5][1]))
+            
+            redshifts = data[2]
+            mags = data[3]
+            sizes = data[4]
             
             # Make sure that something was detected in every image.
             if not((nums[0]==2)&( nums[1]==1 )&(nums[2]==2)):
                 continue
             
-            thisData = ObjectData(x_true=xhi,y_true=yhi, x_gan=xgan, y_gan = ygan, x_lores = xlo, y_lores=ylo)
+            thisData = ObjectData(x_true=xhi,y_true=yhi, x_gan=xgan, y_gan = ygan, x_lores = xlo, y_lores=ylo,mags=mags,sizes=sizes,redshifts=redshifts)
             self.object_data.append(thisData)
 
             # Store the images in Observation objects.
