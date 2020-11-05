@@ -116,7 +116,7 @@ class Shoobygen(nn.Module):
 
 
 netS = Shoobygen(ngpu).to(device)
-netS.load_state_dict(torch.load('netG_epoch_997.pth',map_location='cpu'))
+netS.load_state_dict(torch.load('netG_epoch_999.pth',map_location='cpu'))
 
 def radec2xy(ra,dec,wc):
     coords = SkyCoord(ra,dec, unit='deg')

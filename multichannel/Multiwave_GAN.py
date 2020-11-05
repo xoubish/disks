@@ -228,6 +228,13 @@ for epoch in range(opt.niter):
             kerneltoconvolv = kernel[:,ch,:,:].reshape(-1,1,41,41) 
             a = F.conv2d(imagetoconvolv, kerneltoconvolv,padding = 21) ## convolve with kernel
             img2[:,ch,:,:] = (F.upsample(a,scale_factor=1/3,mode='bilinear')).reshape(-1,22,22) ### fix pixel scale
+            aj = img2.data.numpy()
+            meds = (np.median(img2[:,ch,...],axis=(1,2))).reshape(batch_size,1)
+            aj[:,ch,-2:,:]=np.repeat(meds[:,:,np.newaxis],22,axis=2)    
+            aj[:,ch,:,-2:]=np.repeat(meds[:,:,np.newaxis],22,axis=1)
+            aj[:,ch,:2,:]=np.repeat(meds[:,:,np.newaxis],22,axis=2)
+            aj[:,ch,:,:2]=np.repeat(meds[:,:,np.newaxis],22,axis=1)
+            img2 =torch.tensor(aj, device=device).float()
             img2[:,ch,:,:] = img2[:,ch,:,:]+0.25*torch.rand_like(img2[:,ch,:,:])
             
         
