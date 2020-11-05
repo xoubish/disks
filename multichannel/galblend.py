@@ -116,7 +116,7 @@ class Shoobygen(nn.Module):
 
 
 netS = Shoobygen(ngpu).to(device)
-netS.load_state_dict(torch.load('netG_epoch_998.pth',map_location='cpu'))
+netS.load_state_dict(torch.load('netG_epoch_997.pth',map_location='cpu'))
 
 def radec2xy(ra,dec,wc):
     coords = SkyCoord(ra,dec, unit='deg')
@@ -157,26 +157,6 @@ def magdis(f1,f2):
     sel2 = (f2>=f1)
     r[sel2]=f2[sel2]/f1[sel2]
     return r  
-
-def go_lowres(galax,out_size=21, noise_sigma=0.05,psfhigh=psfhigh[2],psflow=psflow):
-    '''This function is to take high resolution galaxy cutout and go to 
-    a lower pixelscale, resolution and more noise'''
-    
-    psf = pyfits.getdata(psfhigh)
-    psf = downscale_local_mean(psf,(3,3))
-    psf = psf[7:-8,7:-8]
-    psf_hsc = pyfits.getdata(psflow)
-    psf_hsc = psf_hsc[1:42,1:42]
-    kern = create_matching_kernel(psf,psf_hsc)
-
-    img = convolve(galax,kern)
-
-    outp = np.array(Image.fromarray(img).resize((out_size,out_size)))
-    outp = outp*9.0
-
-    im = outp+np.random.normal(0,noise_sigma,outp.shape)    
-    return im
-
 
 def MatchGan(x,y,x2,y2):
     num=0
@@ -219,6 +199,25 @@ def magdis(f1,f2):
     sel2 = (f2>=f1)
     r[sel2]=f2[sel2]/f1[sel2]
     return r 
+
+def go_lowres(galax,out_size=21, noise_sigma=0.05,psfhigh=psfhigh[2],psflow=psflow):
+    '''This function is to take high resolution galaxy cutout and go to 
+    a lower pixelscale, resolution and more noise'''
+    
+    psf = pyfits.getdata(psfhigh)
+    psf = downscale_local_mean(psf,(3,3))
+    psf = psf[7:-8,7:-8]
+    psf_hsc = pyfits.getdata(psflow)
+    psf_hsc = psf_hsc[1:42,1:42]
+    kern = create_matching_kernel(psf,psf_hsc)
+
+    img = convolve(galax,kern)
+    outp = np.array(Image.fromarray(img).resize((out_size,out_size)))
+    outp = outp*9.0
+
+    im = outp+np.random.normal(0,noise_sigma,outp.shape)    
+    return im
+
 
 def go_lowres_tens(galax):
         
@@ -263,7 +262,7 @@ def galblend(gals=1, lim_hmag=25, plot_it=True,sel_band=2,goodscat=goodscat, goo
     
     ## reading GOODS-S catalog and initial selection on objects
     gs = pyfits.getdata(goodscat)
-    sel1 = (gs['zbest']>0.1)&(gs['zbest']<5.0)&(gs['CLASS_STAR']<0.95)&(gs['Hmag']<lim_hmag)&(gs['FWHM_IMAGE']>1)&(gs['FWHM_IMAGE']<10) &(gs['DECdeg']>-27.8)
+    sel1 = (gs['zbest']>0.1)&(gs['zbest']<5.0)&(gs['CLASS_STAR']<0.95)&(gs['Hmag']<lim_hmag)&(gs['FWHM_IMAGE']>2)&(gs['FWHM_IMAGE']<15) &(gs['DECdeg']>-27.8)#(gs['DECdeg']>-27.8)
     
    
     ra, dec,red,iflux,fwhm = gs['RA_1'][sel1],gs['DEC_1'][sel1],gs['zbest'][sel1],gs['ACS_F775W_FLUX'][sel1],gs['FWHM_IMAGE'][sel1]
@@ -338,12 +337,15 @@ def galblend(gals=1, lim_hmag=25, plot_it=True,sel_band=2,goodscat=goodscat, goo
             y_esh.append(num[boz][0])
       
     ### Reduce resolution and pixel scale to Subaru and add some noise
-    lowres = go_lowres(im[sel_band,:,:])
-    dadalow = np.arcsinh(lowres)
+    lowres = np.zeros((7,21,21))
+    for chi in range(7):
+        lowres[chi,:,:] = go_lowres(im[chi,:,:],psfhigh=psfhigh[chi])
+        
+    dadalow = np.arcsinh(lowres[sel_band,:,:])
     rescaledlow = (255.0 / (dadalow.max()+1) * (dadalow - dadalow.min())).astype(np.uint8)
 
     psflo = pyfits.getdata(psflow)
-    num = find_peaks(image=lowres, kernel = psflo,thresh=np.mean(lowres))
+    num = find_peaks(image=lowres[sel_band,:,:], kernel = psflo,thresh=np.mean(lowres[sel_band,:,:]))
     x_esh_low,y_esh_low = [],[]
     for boz in range(len(num)):
         if (1<num[boz][0]<21)&(1<num[boz][1]<21):
@@ -394,7 +396,7 @@ def galblend(gals=1, lim_hmag=25, plot_it=True,sel_band=2,goodscat=goodscat, goo
         plt.axis('off')
 
         plt.subplot(1,n+2,n+1)
-        plt.imshow(lowres,origin='lower')
+        plt.imshow(lowres[sel_band,:,:],origin='lower')
         plt.text(1.5,18,'Lowres',color='y',fontsize=20)
         plt.plot(x_esh_low,y_esh_low,'ro')
         plt.axis('off')
@@ -409,4 +411,4 @@ def galblend(gals=1, lim_hmag=25, plot_it=True,sel_band=2,goodscat=goodscat, goo
         plt.show() 
 
     
-    return im[sel_band,:,:],da1[sel_band,:,:],dada2[0,sel_band,:,:],lowres,fd[0,sel_band,:,:],psf,psflo,[x2,y2,z2,flux2,s2,[[xhi,yhi],[xlo,ylo],[xgan,ygan]]],[numhi,numlow,numgan]
+    return im[:,:,:],da1[:,:,:],dada2[0,:,:,:],lowres[:,:,:],fd[0,:,:,:],psf,psflo,[x2,y2,z2,flux2,s2,[[xhi,yhi],[xlo,ylo],[xgan,ygan]]],[numhi,numlow,numgan]
