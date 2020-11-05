@@ -210,10 +210,28 @@ for epoch in range(opt.niter):
 
         # train with resampled, lower res, noise added images
         kernel = kernel.to(device)
-        im = real_cpu+0.25*torch.rand_like(real_cpu)
-        downsampled = F.upsample(im,scale_factor=1/3,mode='bilinear')
-        img = F.conv2d(downsampled, kernel,padding=int(((kernel.shape[3])-1)/2))
-        img = img[:,:,:,:]
+        #im = real_cpu+0.25*torch.rand_like(real_cpu)
+        #downsampled = F.upsample(im,scale_factor=1/3,mode='bilinear')
+        #img = F.conv2d(downsampled, kernel,padding=int(((kernel.shape[3])-1)/2))
+        #img = img[:,:,:,:]
+
+        convimg = F.conv2d(real_cpu, kernel,padding=20)
+        downimg = F.upsample(convimg,scale_factor=1/3,mode='bilinear').reshape(-1,21,21)
+        aj = downimg.data.numpy()
+        meds = (np.median(aj[:,0,...],axis=(1,2))).reshape(batch_size,1)
+        aj[:,0,-2:,:]=np.repeat(meds[:,:,np.newaxis],22,axis=2)    
+        aj[:,0,:,-2:]=np.repeat(meds[:,:,np.newaxis],22,axis=1)
+        aj[:,0,:2,:]=np.repeat(meds[:,:,np.newaxis],22,axis=2)
+        aj[:,0,:,:2]=np.repeat(meds[:,:,np.newaxis],22,axis=1)
+        downimg =torch.tensor(aj, device=device).float()
+        img2 = torch.from_numpy(np.zeros_like(downimg))
+        img2[:,:,:,:] = downimg[:,0,:,:]+0.25*torch.rand_like(downimg[:,0,:,:])
+      
+        
+        img = img2.view(-1,nc,22,22)
+        img = img[:,:,:,:].float().cuda()
+ 
+        
         fake = netS(img)
         label.fill_(fake_label)
         fd = fake.detach()

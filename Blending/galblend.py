@@ -163,10 +163,20 @@ def go_lowres_tens(galax,psfhigh=psfhigh,psflow=psflow):
     kernel = kernel.permute(2,3,0,1)
     kernel =  kernel.float()
     kernel = kernel.to(device)
-    im = real_cpu+0.25*torch.rand_like(real_cpu)
-    downsampled = F.upsample(im,scale_factor=1/3,mode='bilinear')
-    img = F.conv2d(downsampled, kernel,padding=int(((kernel.shape[3])-1)/2))
-    return img[:,:,:,:]
+    convimg = F.conv2d(real_cpu, kernel,padding=20)
+    img = F.upsample(convimg,scale_factor=1/3,mode='bilinear')
+    
+    aj = img.data.numpy()
+    meds = np.repeat(np.median(img[0,0,...]),2)
+    aj[0,0,-2:,:]=np.repeat(meds[:,np.newaxis],21,axis=1)
+    aj[0,0,:,-2:]=np.repeat(meds[:,np.newaxis],21,axis=1).T
+    aj[0,0,:2,:]=np.repeat(meds[:,np.newaxis],21,axis=1)
+    aj[0,0,:,:2]=np.repeat(meds[:,np.newaxis],21,axis=1).T
+    img =torch.tensor(aj, device=device).float()
+    img2 = torch.from_numpy(np.zeros_like(img))
+    img2[:,:,:,:] = img[:,0,:,:]+0.25*torch.rand_like(img[:,0,:,:])
+    
+    return img2[:,:,:,:]
 
 def str2coord(string):
     x,y=[],[]
@@ -232,7 +242,7 @@ def galblend(gals=1, lim_hmag=24, plot_it=True,goodscat=goodscat,goodsfits=goods
     
     ## reading GOODS-S catalog and initial selection on objects
     gs = pyfits.getdata(goodscat)
-    sel1 = (gs['zbest']>0.1)&(gs['zbest']<5.0)&(gs['CLASS_STAR']<0.95)&(gs['Hmag']<lim_hmag)&(gs['FWHM_IMAGE']>2)&(gs['FWHM_IMAGE']<10) &(gs['DECdeg']>-27.8)
+    sel1 = (gs['zbest']>0.1)&(gs['zbest']<5.0)&(gs['CLASS_STAR']<0.95)&(gs['Hmag']<lim_hmag)&(gs['FWHM_IMAGE']>2)&(gs['FWHM_IMAGE']<10) &(gs['DECdeg']<-27.8)
     
    
     ra, dec,red,iflux,fwhm = gs['RA_1'][sel1],gs['DEC_1'][sel1],gs['zbest'][sel1],gs['ACS_F775W_FLUX'][sel1],gs['FWHM_IMAGE'][sel1]
