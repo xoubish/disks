@@ -227,7 +227,7 @@ for epoch in range(opt.niter):
         img2[:,0,:2,:]=  torch.reshape(t,(batch_size,1,21)) 
         t,ashghal = torch.median(img2[:,0,:,2:-2],dim=2)
         img2[:,0,:,:2]= torch.reshape(t,(batch_size,21,1)) 
-        img[:,:,:,:] = img2[:,0,:,:]+0.25*torch.rand_like(img2[:,0,:,:]) ### add noise            
+        img[:,:,:,:] = img2[:,:,:,:]+0.25*torch.rand_like(img2[:,:,:,:]) ### add noise            
         
         img = img.view(-1,nc,22,22)
         img = img[:,:,:,:].float().cuda()
