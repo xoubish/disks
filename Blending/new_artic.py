@@ -229,7 +229,7 @@ for epoch in range(opt.niter):
         img2[:,0,:,:2]= torch.reshape(t,(batch_size,21,1)) 
         img[:,:,:,:] = img2[:,:,:,:]+0.25*torch.rand_like(img2[:,:,:,:]) ### add noise            
         
-        img = img.view(-1,nc,22,22)
+        img = img.view(-1,nc,21,21)
         img = img[:,:,:,:].float().cuda()
  
         fake = netS(img)
