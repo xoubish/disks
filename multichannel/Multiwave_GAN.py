@@ -222,23 +222,25 @@ for epoch in range(opt.niter):
         
         kernel = kernel.to(device)
         img2 = torch.tensor(np.zeros((batch_size,nc,22,22)))
+        img = torch.tensor(np.zeros((batch_size,nc,22,22)))
 
         for ch in range(real_cpu.shape[1]):
             imagetoconvolv = real_cpu[:,ch,:,:].reshape(-1,1,64,64)
             kerneltoconvolv = kernel[:,ch,:,:].reshape(-1,1,41,41) 
             a = F.conv2d(imagetoconvolv, kerneltoconvolv,padding = 21) ## convolve with kernel
             img2[:,ch,:,:] = (F.upsample(a,scale_factor=1/3,mode='bilinear')).reshape(-1,22,22) ### fix pixel scale
-            aj = img2.data.numpy()
-            meds = (np.median(img2[:,ch,...],axis=(1,2))).reshape(batch_size,1)
-            aj[:,ch,-2:,:]=np.repeat(meds[:,:,np.newaxis],22,axis=2)    
-            aj[:,ch,:,-2:]=np.repeat(meds[:,:,np.newaxis],22,axis=1)
-            aj[:,ch,:2,:]=np.repeat(meds[:,:,np.newaxis],22,axis=2)
-            aj[:,ch,:,:2]=np.repeat(meds[:,:,np.newaxis],22,axis=1)
-            img2 =torch.tensor(aj, device=device).float()
-            img2[:,ch,:,:] = img2[:,ch,:,:]+0.25*torch.rand_like(img2[:,ch,:,:])
-            
+          
+            t,ashghal = torch.median(img2[:,ch,2:-2,:],dim=1)
+            img2[:,ch,-2:,:]=  torch.reshape(t,(batch_size,1,22)) 
+            t,ashghal = torch.median(img2[:,ch,:,2:-2],dim=2)
+            img2[:,ch,:,-2:]= torch.reshape(t,(batch_size,22,1)) 
+            t,ashghal = torch.median(img2[:,ch,2:-2,:],dim=1)
+            img2[:,ch,:2,:]=  torch.reshape(t,(batch_size,1,22)) 
+            t,ashghal = torch.median(img2[:,ch,:,2:-2],dim=2)
+            img2[:,ch,:,:2]= torch.reshape(t,(batch_size,22,1)) 
+            img[:,ch,:,:] = img2[:,ch,:,:]+0.25*torch.rand_like(img2[:,ch,:,:]) ### add noise            
         
-        img = img2.view(-1,nc,22,22)
+        img = img.view(-1,nc,22,22)
         img = img[:,:,:,:].float().cuda()
  
         fake = netS(img)
