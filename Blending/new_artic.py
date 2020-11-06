@@ -214,6 +214,8 @@ for epoch in range(opt.niter):
         #downsampled = F.upsample(im,scale_factor=1/3,mode='bilinear')
         #img = F.conv2d(downsampled, kernel,padding=int(((kernel.shape[3])-1)/2))
         #img = img[:,:,:,:]
+        img2 = torch.tensor(np.zeros((batch_size,nc,21,21)))
+        img = torch.tensor(np.zeros((batch_size,nc,21,21)))
 
         convimg = F.conv2d(real_cpu, kernel,padding=20)               
         img2[:,0,:,:] = F.upsample(convimg,scale_factor=1/3,mode='bilinear').reshape(-1,21,21) ### fix pixel scale

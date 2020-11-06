@@ -116,7 +116,7 @@ class Shoobygen(nn.Module):
 
 
 netS = Shoobygen(ngpu).to(device)
-netS.load_state_dict(torch.load('netG_epoch_999.pth',map_location='cpu'))
+netS.load_state_dict(torch.load('netG_epoch_900.pth',map_location='cpu'))
 
 def radec2xy(ra,dec,wc):
     coords = SkyCoord(ra,dec, unit='deg')
@@ -397,21 +397,21 @@ def galblend(gals=1, lim_hmag=25, plot_it=True,sel_band=2,goodscat=goodscat, goo
             plt.axis('off')
 
         plt.subplot(1,n+2,n)
-        plt.imshow(im[sel_band,:,:],origin='lower')
+        plt.imshow(im[sel_band,:,:],origin='lower',cmap='gray')
         plt.text(2,55,'Sum',color='y',fontsize=20)
-        plt.plot(x_esh,y_esh,'ro')
+        plt.plot(x_esh,y_esh,'rx')
         plt.axis('off')
 
         plt.subplot(1,n+2,n+1)
-        plt.imshow(lowres[sel_band,:,:],origin='lower')
+        plt.imshow(lowres[sel_band,:,:],origin='lower',cmap='gray')
         plt.text(1.5,18,'Lowres',color='y',fontsize=20)
-        plt.plot(x_esh_low,y_esh_low,'ro')
+        plt.plot(x_esh_low,y_esh_low,'rx')
         plt.axis('off')
 
         plt.subplot(1,n+2,n+2)
-        plt.imshow(fd[0,sel_band,:,:],origin='lower')
+        plt.imshow(fd[0,sel_band,:,:],origin='lower',cmap='gray')
         plt.text(2,55,'GAN res',color='y',fontsize=20)
-        plt.plot(x_esh_fd,y_esh_fd,'ro')
+        plt.plot(x_esh_fd,y_esh_fd,'rx')
         plt.axis('off')
 
         plt.tight_layout()
