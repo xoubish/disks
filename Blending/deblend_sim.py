@@ -173,7 +173,6 @@ class Simulation(object):
         psf_gmix = self._fit_psf(psf_obs)
         psf_obs.set_gmix(psf_gmix)
         gal_obs = ngmix.Observation(gal_image, weight=weight_image,jacobian=jj_im, psf=psf_obs)
-    
         return gal_obs
 
     def _get_priors(self, x_pos = 0.0, y_pos = 0.0):

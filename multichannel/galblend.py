@@ -116,7 +116,7 @@ class Shoobygen(nn.Module):
 
 
 netS = Shoobygen(ngpu).to(device)
-netS.load_state_dict(torch.load('netG_epoch_900.pth',map_location='cpu'))
+netS.load_state_dict(torch.load('netG_epoch_999.pth',map_location='cpu'))
 
 def radec2xy(ra,dec,wc):
     coords = SkyCoord(ra,dec, unit='deg')
@@ -259,6 +259,19 @@ def go_lowres_tens(galax):
     img = img[:,:,:,:].float()
     return img[:,:,:,:]
 
+def str2coord(string):
+    x,y=[],[]
+    if len(string)>8:
+        d = string.split('[')
+        d = ''.join(d)
+        d2 = d.split(']')
+        d2 = ''.join(d2)
+        d3 = d2.split(',')
+        for i in range(np.int(len(d3)/2)):
+            x.append(np.int(d3[i]))
+            y.append(np.int(d3[np.int(len(d3)/2)+i]))
+    return x,y
+
 def galblend(gals=1, lim_hmag=25, plot_it=True,sel_band=2,goodscat=goodscat, goodsfits = goodsfits,psfhigh=psfhigh,psflow=psflow):
     
     '''This is to put together two candels GOODS_S galaxies into a single 64x64 cutout.
@@ -269,7 +282,7 @@ def galblend(gals=1, lim_hmag=25, plot_it=True,sel_band=2,goodscat=goodscat, goo
     
     ## reading GOODS-S catalog and initial selection on objects
     gs = pyfits.getdata(goodscat)
-    sel1 = (gs['zbest']>0.1)&(gs['zbest']<5.0)&(gs['CLASS_STAR']<0.95)&(gs['Hmag']<lim_hmag)&(gs['FWHM_IMAGE']>2)&(gs['FWHM_IMAGE']<15) &(gs['DECdeg']>-27.8)#(gs['DECdeg']>-27.8)
+    sel1 = (gs['zbest']>0.1)&(gs['zbest']<5.0)&(gs['CLASS_STAR']<0.95)&(gs['Hmag']<lim_hmag)&(gs['FWHM_IMAGE']>2)&(gs['FWHM_IMAGE']<15) &(gs['DECdeg']<-27.8)#(gs['DECdeg']>-27.8)
     
    
     ra, dec,red,iflux,fwhm = gs['RA_1'][sel1],gs['DEC_1'][sel1],gs['zbest'][sel1],gs['ACS_F775W_FLUX'][sel1],gs['FWHM_IMAGE'][sel1]
@@ -336,7 +349,7 @@ def galblend(gals=1, lim_hmag=25, plot_it=True,sel_band=2,goodscat=goodscat, goo
     
     psf = pyfits.getdata(psfhigh[sel_band])
     #num = find_peaks(image=im, kernel = psf,thresh=3*np.mean(im))
-    num = find_peaks(image=rescaled-np.mean(rescaled), kernel = psf,thresh=np.mean(rescaled))
+    num = find_peaks(image=im[sel_band,:,:]-np.mean(im[sel_band,:,:]), kernel = psf,thresh=3*np.mean(im[sel_band,:,:]))
     x_esh,y_esh = [],[]
     for boz in range(len(num)):
         if (1<num[boz][0]<64)&(1<num[boz][1]<64):
@@ -352,7 +365,7 @@ def galblend(gals=1, lim_hmag=25, plot_it=True,sel_band=2,goodscat=goodscat, goo
     rescaledlow = (255.0 / (dadalow.max()+1) * (dadalow - dadalow.min())).astype(np.uint8)
 
     psflo = pyfits.getdata(psflow)
-    num = find_peaks(image=lowres[sel_band,:,:], kernel = psflo,thresh=np.mean(lowres[sel_band,:,:]))
+    num = find_peaks(image=dadalow, kernel = psflo,thresh=3*np.mean(dadalow))
     x_esh_low,y_esh_low = [],[]
     for boz in range(len(num)):
         if (1<num[boz][0]<21)&(1<num[boz][1]<21):
@@ -368,7 +381,7 @@ def galblend(gals=1, lim_hmag=25, plot_it=True,sel_band=2,goodscat=goodscat, goo
     GANres = fd[0,sel_band,:,:].numpy()
     
     ### Detect sources on GANres
-    num = find_peaks(image=GANres-np.mean(GANres), kernel = psf,thresh=0.2)#np.mean(GANres))
+    num = find_peaks(image=GANres-np.mean(GANres), kernel = psf,thresh=max(0.3,4*np.mean(GANres)))
     x_esh_fd,y_esh_fd = [],[]
     for boz in range(len(num)):
         if (1<num[boz][0]<64)&(1<num[boz][1]<64):
