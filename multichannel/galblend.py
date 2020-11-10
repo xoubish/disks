@@ -164,7 +164,7 @@ def MatchGan(x,y,x2,y2):
     if len(x2)>0:
         for i in range(len(x2)):
             dis = distance(x,np.repeat(x2[i],len(x)),y,np.repeat(y2[i],len(y))) #distance of all Ganres to initial sources
-            if np.min(dis)<4:
+            if np.min(dis)<6:
                 num+=1
                 u = np.argmin(dis)
                 x_out.append((x[u]).astype(np.uint8))
@@ -365,7 +365,7 @@ def galblend(gals=1, lim_hmag=25, plot_it=True,sel_band=2,goodscat=goodscat, goo
     rescaledlow = (255.0 / (dadalow.max()+1) * (dadalow - dadalow.min())).astype(np.uint8)
 
     psflo = pyfits.getdata(psflow)
-    num = find_peaks(image=dadalow, kernel = psflo,thresh=3*np.mean(dadalow))
+    num = find_peaks(image=dadalow, kernel = psflo,thresh=np.mean(dadalow))
     x_esh_low,y_esh_low = [],[]
     for boz in range(len(num)):
         if (1<num[boz][0]<21)&(1<num[boz][1]<21):
