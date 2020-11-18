@@ -90,7 +90,7 @@ class Shoobygen(nn.Module):
 
         return output1
 netS = Shoobygen(ngpu).to(device)
-netS.load_state_dict(torch.load('netG_epoch_599.pth',map_location='cpu'))
+netS.load_state_dict(torch.load('netG_epoch_699.pth',map_location='cpu'))
 
 def radec2xy(ra,dec,wc):
     coords = SkyCoord(ra,dec, unit='deg')
@@ -371,4 +371,4 @@ def galblend(gals=1, lim_hmag=24, plot_it=True,goodscat=goodscat,goodsfits=goods
         plt.tight_layout()
         plt.show()
         
-    return im,da1,da2[0,:,:],lowres,fd[0,0,:,:],psf,psflo,[x2,y2,z2,flux2,s2,[[xhi,yhi],[xlo,ylo],[xgan,ygan]]],[numhi,numlow,numgan]
+    return im,da1,da2,lowres,fd[0,0,:,:],psf,psflo,[x2,y2,z2,flux2,s2,[[xhi,yhi],[xlo,ylo],[xgan,ygan]]],[numhi,numlow,numgan]
