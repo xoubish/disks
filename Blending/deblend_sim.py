@@ -67,7 +67,7 @@ class Simulation(object):
             hi,i1,i2,lo,gan,psf_hires,psf_lores,data,nums = galblend(gals=2,lim_hmag=25,plot_it=self.do_image_plots)
             this_hires_obs = self._make_observation(hi,psf_hires,image_scale=self.scale_hires,psf_scale=self.scale_psf)
             this_single_obs1 = self._make_observation(i1,psf_lores,image_scale=self.scale_hires,psf_scale=self.scale_psf)
-            this_single_obs2 = self._make_observation(i2,psf_lores,image_scale=self.scale_hires,psf_scale=self.scale_psf)
+            this_single_obs2 = self._make_observation(i2[0,:,:],psf_lores,image_scale=self.scale_hires,psf_scale=self.scale_psf)
             this_lores_obs = self._make_observation(lo,psf_lores,image_scale=self.scale_lores,psf_scale=self.scale_psf)
 
             

@@ -121,7 +121,7 @@ def brightest_center(im, r = 20):
     return ans
 
 import scipy
-def go_lowres(galax,out_size=21, noise_sigma=0.1,psfhigh=psfhigh,psflow=psflow):
+def go_lowres(galax,out_size=21, noise_sigma=0.05,psfhigh=psfhigh,psflow=psflow):
     '''This function is to take high resolution galaxy cutout and go to 
     a lower pixelscale, resolution and more noise'''
     
@@ -197,7 +197,7 @@ def MatchGan(x,y,x2,y2):
     if len(x2)>0:
         for i in range(len(x2)):
             dis = distance(x,np.repeat(x2[i],len(x)),y,np.repeat(y2[i],len(y))) #distance of all Ganres to initial sources
-            if np.min(dis)<4:
+            if np.min(dis)<6:
                 num+=1
                 u = np.argmin(dis)
                 x_out.append((x[u]).astype(np.uint8))
@@ -303,10 +303,9 @@ def galblend(gals=1, lim_hmag=24, plot_it=True,goodscat=goodscat,goodsfits=goods
     ### Reduce resolution and pixel scale to Subaru and add some noise
     lowres = go_lowres(im)
     dadalow = np.arcsinh(lowres)
-    rescaledlow = (255.0 / (dadalow.max()+1.0) * (dadalow - dadalow.min())).astype(np.uint8)
 
     psflo = pyfits.getdata(psflow)
-    num = find_peaks(image=lowres, kernel = psflo,thresh=np.mean(lowres))
+    num = find_peaks(image=dadalow, kernel = psflo,thresh=0.75*np.mean(dadalow))
     x_esh_low,y_esh_low = [],[]
     for boz in range(len(num)):
         if (1<num[boz][0]<21)&(1<num[boz][1]<21):
@@ -322,7 +321,7 @@ def galblend(gals=1, lim_hmag=24, plot_it=True,goodscat=goodscat,goodsfits=goods
     GANres = fd[0,0,:,:].numpy()
     
     ### Detect sources on GANres
-    num = find_peaks(image=GANres-np.mean(GANres), kernel = psf,thresh=0.2)#np.mean(GANres))
+    num = find_peaks(image=GANres-np.mean(GANres), kernel = psf,thresh=max(0.2,3*np.mean(GANres)))#np.mean(GANres))
     x_esh_fd,y_esh_fd = [],[]
     for boz in range(len(num)):
         if (1<num[boz][0]<64)&(1<num[boz][1]<64):
@@ -357,7 +356,7 @@ def galblend(gals=1, lim_hmag=24, plot_it=True,goodscat=goodscat,goodsfits=goods
         plt.axis('off')
 
         plt.subplot(1,n+2,n+1)
-        plt.imshow(rescaledlow,origin='lower')
+        plt.imshow(dadalow,origin='lower')
         plt.text(1.5,18,'Lowres',color='y',fontsize=20)
         plt.plot(x_esh_low,y_esh_low,'ro')
         plt.axis('off')

@@ -362,10 +362,9 @@ def galblend(gals=1, lim_hmag=25, plot_it=True,sel_band=2,goodscat=goodscat, goo
         lowres[chi,:,:] = go_lowres(im[chi,:,:],psfhigh=psfhigh[chi])
         
     dadalow = np.arcsinh(lowres[sel_band,:,:])
-    rescaledlow = (255.0 / (dadalow.max()+1) * (dadalow - dadalow.min())).astype(np.uint8)
 
     psflo = pyfits.getdata(psflow)
-    num = find_peaks(image=dadalow, kernel = psflo,thresh=np.mean(dadalow))
+    num = find_peaks(image=dadalow, kernel = psflo,thresh=0.75*np.mean(dadalow))
     x_esh_low,y_esh_low = [],[]
     for boz in range(len(num)):
         if (1<num[boz][0]<21)&(1<num[boz][1]<21):
@@ -381,7 +380,7 @@ def galblend(gals=1, lim_hmag=25, plot_it=True,sel_band=2,goodscat=goodscat, goo
     GANres = fd[0,sel_band,:,:].numpy()
     
     ### Detect sources on GANres
-    num = find_peaks(image=GANres-np.mean(GANres), kernel = psf,thresh=max(0.3,4*np.mean(GANres)))
+    num = find_peaks(image=GANres-np.mean(GANres), kernel = psf,thresh=max(0.2,3*np.mean(GANres)))
     x_esh_fd,y_esh_fd = [],[]
     for boz in range(len(num)):
         if (1<num[boz][0]<64)&(1<num[boz][1]<64):
@@ -410,19 +409,19 @@ def galblend(gals=1, lim_hmag=25, plot_it=True,sel_band=2,goodscat=goodscat, goo
             plt.axis('off')
 
         plt.subplot(1,n+2,n)
-        plt.imshow(im[sel_band,:,:],origin='lower',cmap='gray')
+        plt.imshow(im[sel_band,:,:],origin='lower')
         plt.text(2,55,'Sum',color='y',fontsize=20)
         plt.plot(x_esh,y_esh,'rx')
         plt.axis('off')
 
         plt.subplot(1,n+2,n+1)
-        plt.imshow(lowres[sel_band,:,:],origin='lower',cmap='gray')
+        plt.imshow(lowres[sel_band,:,:],origin='lower')
         plt.text(1.5,18,'Lowres',color='y',fontsize=20)
         plt.plot(x_esh_low,y_esh_low,'rx')
         plt.axis('off')
 
         plt.subplot(1,n+2,n+2)
-        plt.imshow(fd[0,sel_band,:,:],origin='lower',cmap='gray')
+        plt.imshow(fd[0,sel_band,:,:],origin='lower')
         plt.text(2,55,'GAN res',color='y',fontsize=20)
         plt.plot(x_esh_fd,y_esh_fd,'rx')
         plt.axis('off')
