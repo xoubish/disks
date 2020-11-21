@@ -282,7 +282,7 @@ def galblend(gals=1, lim_hmag=25, plot_it=True,sel_band=2,goodscat=goodscat, goo
     
     ## reading GOODS-S catalog and initial selection on objects
     gs = pyfits.getdata(goodscat)
-    sel1 = (gs['zbest']>0.1)&(gs['zbest']<5.0)&(gs['CLASS_STAR']<0.95)&(gs['Hmag']<lim_hmag)&(gs['FWHM_IMAGE']>2)&(gs['FWHM_IMAGE']<15) &(gs['DECdeg']<-27.8)#(gs['DECdeg']>-27.8)
+    sel1 = (gs['zbest']>0.1)&(gs['zbest']<5.0)&(gs['CLASS_STAR']<0.95)&(gs['Hmag']<lim_hmag)&(gs['FWHM_IMAGE']>1)&(gs['FWHM_IMAGE']<10) #&(gs['DECdeg']<-27.8)#(gs['DECdeg']>-27.8)
     
    
     ra, dec,red,iflux,fwhm = gs['RA_1'][sel1],gs['DEC_1'][sel1],gs['zbest'][sel1],gs['ACS_F775W_FLUX'][sel1],gs['FWHM_IMAGE'][sel1]
@@ -380,7 +380,7 @@ def galblend(gals=1, lim_hmag=25, plot_it=True,sel_band=2,goodscat=goodscat, goo
     GANres = fd[0,sel_band,:,:].numpy()
     
     ### Detect sources on GANres
-    num = find_peaks(image=GANres-np.mean(GANres), kernel = psf,thresh=max(0.2,3*np.mean(GANres)))
+    num = find_peaks(image=GANres-np.mean(GANres), kernel = psf,thresh=max(0.25,3*np.mean(GANres)))
     x_esh_fd,y_esh_fd = [],[]
     for boz in range(len(num)):
         if (1<num[boz][0]<64)&(1<num[boz][1]<64):
